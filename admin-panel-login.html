@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Login/Logout</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(to right, #4f46e5, #7c3aed);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .auth-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .auth-btn.logout {
+            background-color: rgba(239, 68, 68, 0.7);
+        }
+
+        .auth-btn.logout:hover {
+            background-color: rgba(239, 68, 68, 0.9);
+        }
+
+        .content {
+            display: flex;
+            min-height: 700px;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #1e293b;
+            color: #cbd5e1;
+            padding: 25px 0;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            padding: 15px 25px;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar li:hover {
+            background-color: #334155;
+            border-left: 4px solid #4f46e5;
+            color: white;
+        }
+
+        .sidebar li.active {
+            background-color: #334155;
+            border-left: 4px solid #4f46e5;
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .login-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .login-box {
+            background-color: white;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-header {
+            background: linear-gradient(to right, #4f46e5, #7c3aed);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .login-header h2 {
+            font-size: 26px;
+            font-weight: 600;
+        }
+
+        .login-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        .login-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-login {
+            background: linear-gradient(to right, #4f46e5, #7c3aed);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-cancel {
+            background-color: #e2e8f0;
+            color: #475569;
+            margin-right: 15px;
+        }
+
+        .btn-cancel:hover {
+            background-color: #cbd5e1;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+
+        .error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        .success {
+            background-color: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #86efac;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .user-info span {
+            font-weight: 500;
+        }
+
+        .status-login {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .logged-in {
+            background-color: #10b981;
+        }
+
+        .logged-out {
+            background-color: #ef4444;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .card h3 {
+            font-size: 16px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .table-container {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background-color: #f8fafc;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .footer {
+            padding: 20px 30px;
+            background-color: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .weather-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @media (max-width: 992px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .auth-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ADMIN PANEL - Dashboard Administrator</h1>
+            <div class="auth-buttons">
+                <div class="user-info" id="userInfo">
+                    <span class="status-login logged-out" id="loginStatusIcon"></span>
+                    <span id="userStatus">Belum login</span>
+                </div>
+                <button class="auth-btn" id="loginBtn">Login</button>
+                <button class="auth-btn logout" id="logoutBtn" disabled>Logout</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="sidebar">
+                <ul>
+                    <li class="active">Dashboard</li>
+                    <li>Notification</li>
+                    <li>Kitterammatan</li>
+                    <li>Kitter Amati</li>
+                    <li>Laptop</li>
+                    <li>Application</li>
+                    <li>Rekap Absensi</li>
+                </ul>
+            </div>
+            
+            <div class="main-content">
+                <!-- Pesan status login -->
+                <div class="message" id="messageBox"></div>
+                
+                <!-- Dashboard content -->
+                <div id="dashboardContent">
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <h3>TOTAL NARTAWANA</h3>
+                            <p>0 call</p>
+                            <p>0% call ticket</p>
+                        </div>
+                        <div class="card">
+                            <h3>KITTERAMMATAN</h3>
+                            <p>0% daily long hotel</p>
+                        </div>
+                        <div class="card">
+                            <h3>KITTER AMATI</h3>
+                            <p>0% daily long hotel</p>
+                        </div>
+                    </div>
+
+                    <h2 style="margin-bottom: 20px; color: #1e293b;">Rekap Absensi Hari ini</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Home Kenyevan</th>
+                                    <th>Waktu Manuk</th>
+                                    <th>Waktu Kakar</th>
+                                    <th>Status</th>
+                                    <th>Kesinambatan</th>
+                                    <th>Catatan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Admin Utama</td>
+                                    <td>08:00</td>
+                                    <td>17:00</td>
+                                    <td>Hadir</td>
+                                    <td>100%</td>
+                                    <td>-</td>
+                                    <td>Edit</td>
+                                </tr>
+                                <tr>
+                                    <td>Staff IT</td>
+                                    <td>08:15</td>
+                                    <td>17:10</td>
+                                    <td>Hadir</td>
+                                    <td>98%</td>
+                                    <td>Meeting pagi</td>
+                                    <td>Edit</td>
+                                </tr>
+                                <tr>
+                                    <td>Operator</td>
+                                    <td>08:05</td>
+                                    <td>16:55</td>
+                                    <td>Hadir</td>
+                                    <td>99%</td>
+                                    <td>-</td>
+                                    <td>Edit</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Protected content (hanya terlihat setelah login) -->
+                <div id="protectedContent" style="display: none;">
+                    <div class="card" style="margin-bottom: 30px;">
+                        <h3>Selamat datang di Admin Panel</h3>
+                        <p style="margin-top: 10px;">Anda telah berhasil login. Sekarang Anda dapat mengakses semua fitur administrator.</p>
+                    </div>
+                    
+                    <h2 style="margin-bottom: 20px; color: #1e293b;">Fitur Administrator</h2>
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <h3>Manajemen Pengguna</h3>
+                            <p>Kelola akses pengguna sistem</p>
+                        </div>
+                        <div class="card">
+                            <h3>Laporan Harian</h3>
+                            <p>Lihat dan ekspor laporan</p>
+                        </div>
+                        <div class="card">
+                            <h3>Pengaturan Sistem</h3>
+                            <p>Konfigurasi aplikasi</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div>
+                <p>localhost - <span id="currentTime">00:00:00</span></p>
+            </div>
+            <div class="weather-info">
+                <span>25°C Berawan</span>
+                <span id="currentDate">03/12/2025</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="login-modal" id="loginModal">
+        <div class="login-box">
+            <div class="login-header">
+                <h2>Login Admin Panel</h2>
+            </div>
+            <div class="login-body">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Masukkan username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Masukkan password">
+                </div>
+                <div class="login-actions">
+                    <button class="btn btn-cancel" id="cancelLogin">Batal</button>
+                    <button class="btn btn-login" id="submitLogin">Login</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simpan status login di localStorage
+        const AUTH_KEY = 'admin_panel_auth';
+        const USER_DATA_KEY = 'admin_user_data';
+        
+        // Data pengguna contoh (dalam aplikasi nyata, data ini berasal dari server)
+        const sampleUsers = [
+            { username: 'admin', password: 'admin123', name: 'Administrator Utama' },
+            { username: 'staff', password: 'staff123', name: 'Staff IT' },
+            { username: 'operator', password: 'operator123', name: 'Operator Sistem' }
+        ];
+        
+        // Elemen DOM
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginModal = document.getElementById('loginModal');
+        const cancelLogin = document.getElementById('cancelLogin');
+        const submitLogin = document.getElementById('submitLogin');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const userInfo = document.getElementById('userInfo');
+        const userStatus = document.getElementById('userStatus');
+        const loginStatusIcon = document.getElementById('loginStatusIcon');
+        const messageBox = document.getElementById('messageBox');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const protectedContent = document.getElementById('protectedContent');
+        const currentTimeElement = document.getElementById('currentTime');
+        const currentDateElement = document.getElementById('currentDate');
+        
+        // Fungsi untuk menampilkan pesan
+        function showMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.className = `message ${type}`;
+            messageBox.style.display = 'block';
+            
+            // Sembunyikan pesan setelah 5 detik
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Fungsi untuk memperbarui UI berdasarkan status login
+        function updateUI() {
+            const isLoggedIn = localStorage.getItem(AUTH_KEY) === 'true';
+            const userData = JSON.parse(localStorage.getItem(USER_DATA_KEY) || '{}');
+            
+            if (isLoggedIn && userData.username) {
+                // Status: Sudah login
+                userStatus.textContent = `Login sebagai: ${userData.name || userData.username}`;
+                loginStatusIcon.className = 'status-login logged-in';
+                loginBtn.disabled = true;
+                logoutBtn.disabled = false;
+                
+                // Tampilkan konten yang dilindungi
+                dashboardContent.style.display = 'none';
+                protectedContent.style.display = 'block';
+                
+                // Tampilkan pesan selamat datang
+                showMessage(`Selamat datang, ${userData.name || userData.username}! Anda berhasil login.`, 'success');
+            } else {
+                // Status: Belum login
+                userStatus.textContent = 'Belum login';
+                loginStatusIcon.className = 'status-login logged-out';
+                loginBtn.disabled = false;
+                logoutBtn.disabled = true;
+                
+                // Sembunyikan konten yang dilindungi
+                dashboardContent.style.display = 'block';
+                protectedContent.style.display = 'none';
+            }
+        }
+        
+        // Fungsi untuk login
+        function login(username, password) {
+            // Cari pengguna yang sesuai
+            const user = sampleUsers.find(u => u.username === username && u.password === password);
+            
+            if (user) {
+                // Simpan status login dan data pengguna
+                localStorage.setItem(AUTH_KEY, 'true');
+                localStorage.setItem(USER_DATA_KEY, JSON.stringify(user));
+                
+                // Update UI
+                updateUI();
+                
+                // Tutup modal login
+                loginModal.style.display = 'none';
+                
+                // Reset form
+                usernameInput.value = '';
+                passwordInput.value = '';
+                
+                return true;
+            } else {
+                showMessage('Username atau password salah!', 'error');
+                return false;
+            }
+        }
+        
+        // Fungsi untuk logout
+        function logout() {
+            // Hapus status login
+            localStorage.removeItem(AUTH_KEY);
+            localStorage.removeItem(USER_DATA_KEY);
+            
+            // Update UI
+            updateUI();
+            
+            // Tampilkan pesan logout
+            showMessage('Anda telah berhasil logout.', 'success');
+        }
+        
+        // Fungsi untuk memperbarui waktu dan tanggal
+        function updateDateTime() {
+            const now = new Date();
+            
+            // Format waktu: HH:MM:SS
+            const timeString = now.toLocaleTimeString('id-ID', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            // Format tanggal: DD/MM/YYYY
+            const dateString = now.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            
+            currentTimeElement.textContent = timeString;
+            currentDateElement.textContent = dateString;
+        }
+        
+        // Event Listeners
+        loginBtn.addEventListener('click', () => {
+            loginModal.style.display = 'flex';
+            usernameInput.focus();
+        });
+        
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('Apakah Anda yakin ingin logout?')) {
+                logout();
+            }
+        });
+        
+        cancelLogin.addEventListener('click', () => {
+            loginModal.style.display = 'none';
+            usernameInput.value = '';
+            passwordInput.value = '';
+        });
+        
+        submitLogin.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            if (!username || !password) {
+                showMessage('Harap isi username dan password!', 'error');
+                return;
+            }
+            
+            login(username, password);
+        });
+        
+        // Tambahkan event listener untuk tombol Enter pada form login
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitLogin.click();
+            }
+        });
+        
+        // Tutup modal login ketika klik di luar area modal
+        loginModal.addEventListener('click', (e) => {
+            if (e.target === loginModal) {
+                loginModal.style.display = 'none';
+                usernameInput.value = '';
+                passwordInput.value = '';
+            }
+        });
+        
+        // Inisialisasi
+        document.addEventListener('DOMContentLoaded', () => {
+            // Perbarui UI berdasarkan status login saat ini
+            updateUI();
+            
+            // Perbarui waktu dan tanggal
+            updateDateTime();
+            
+            // Update waktu setiap detik
+            setInterval(updateDateTime, 1000);
+            
+            // Cek jika ada parameter login di URL (untuk keperluan demo)
+            const urlParams = new URLSearchParams(window.location.search);
+            const demoLogin = urlParams.get('demo');
+            
+            if (demoLogin === 'true') {
+                // Login otomatis dengan akun demo
+                login('admin', 'admin123');
+            }
+        });
+        
+        // Tambahkan event listener untuk item sidebar
+        document.querySelectorAll('.sidebar li').forEach(item => {
+            item.addEventListener('click', () => {
+                // Hapus kelas active dari semua item
+                document.querySelectorAll('.sidebar li').forEach(li => {
+                    li.classList.remove('active');
+                });
+                
+                // Tambahkan kelas active ke item yang diklik
+                item.classList.add('active');
+                
+                // Tampilkan pesan (simulasi navigasi)
+                if (item.textContent.includes('Dashboard')) {
+                    showMessage('Memuat dashboard...', 'success');
+                } else {
+                    showMessage(`Membuka halaman: ${item.textContent}`, 'success');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
