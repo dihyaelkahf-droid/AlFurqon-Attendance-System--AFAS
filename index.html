@@ -3,49 +3,921 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Absensi - Login</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Login - Sistem Absensi Karyawan</title>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👨‍💼</text></svg>">
+    
+    <style>
+        /* ========== CSS RESET ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* ========== VARIABLES ========== */
+        :root {
+            --primary: #2c3e50;
+            --primary-dark: #1a252f;
+            --secondary: #3498db;
+            --secondary-dark: #2980b9;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --gray: #7f8c8d;
+            --light-gray: #f8f9fa;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        /* ========== BODY & BACKGROUND ========== */
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background Animation */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            z-index: 0;
+        }
+
+        /* ========== MAIN CONTAINER ========== */
+        .container {
+            width: 100%;
+            max-width: 450px;
+            z-index: 1;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== LOGIN CARD ========== */
+        .login-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative Lines */
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        /* ========== LOGO SECTION ========== */
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 32px;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .logo h1 {
+            color: var(--primary);
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .logo p {
+            color: var(--gray);
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        /* ========== FORM STYLES ========== */
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group label i {
+            color: var(--secondary);
+            font-size: 16px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+            font-size: 18px;
+            z-index: 1;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--dark);
+            background: var(--light-gray);
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--secondary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: #aaa;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+        }
+
+        .password-toggle:hover {
+            color: var(--secondary);
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn-block {
+            width: 100%;
+            display: flex;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 5px 15px rgba(44, 62, 80, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(44, 62, 80, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* ========== LOGIN INFO ========== */
+        .login-info {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--light-gray);
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .login-info h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-info h4 i {
+            color: var(--secondary);
+        }
+
+        .login-info p {
+            color: var(--gray);
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-info p:last-child {
+            margin-bottom: 0;
+        }
+
+        .login-info strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* ========== TEST ACCOUNTS ========== */
+        .test-accounts {
+            background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 25px;
+            border: 1px dashed var(--warning);
+        }
+
+        .test-accounts h4 {
+            color: #d35400;
+            margin-bottom: 15px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .account-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .account-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--secondary);
+        }
+
+        .account-role {
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            background: var(--secondary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .account-role.admin {
+            background: var(--primary);
+        }
+
+        .account-details {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .account-details .username {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .account-details .password {
+            color: var(--danger);
+            font-family: monospace;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: white;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .footer p {
+            margin-bottom: 8px;
+        }
+
+        .footer .warning {
+            color: #ffeaa7;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        /* ========== LOADING SPINNER ========== */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-loading .spinner {
+            display: inline-block;
+        }
+
+        .btn-loading span {
+            display: none;
+        }
+
+        /* ========== ERROR MESSAGES ========== */
+        .error-message {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            animation: shake 0.3s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .error-message i {
+            font-size: 14px;
+        }
+
+        /* ========== RESPONSIVE DESIGN ========== */
+        @media (max-width: 480px) {
+            .container {
+                max-width: 100%;
+                padding: 10px;
+            }
+
+            .login-card {
+                padding: 30px 25px;
+            }
+
+            .logo-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+
+            .logo h1 {
+                font-size: 22px;
+            }
+
+            .form-control {
+                padding: 12px 12px 12px 40px;
+                font-size: 15px;
+            }
+
+            .btn {
+                padding: 14px 25px;
+                font-size: 15px;
+            }
+
+            .account-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .login-info, .test-accounts {
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .login-card {
+                padding: 25px 20px;
+            }
+
+            .logo-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+
+            .logo h1 {
+                font-size: 20px;
+            }
+        }
+
+        /* ========== DARK MODE SUPPORT ========== */
+        @media (prefers-color-scheme: dark) {
+            .login-card {
+                background: #2d3436;
+                color: #fff;
+            }
+
+            .logo h1 {
+                color: #fff;
+            }
+
+            .logo p {
+                color: #b2bec3;
+            }
+
+            .form-group label {
+                color: #dfe6e9;
+            }
+
+            .form-control {
+                background: #3c4245;
+                border-color: #4a5257;
+                color: #fff;
+            }
+
+            .form-control:focus {
+                background: #4a5257;
+                border-color: var(--secondary);
+            }
+
+            .login-info {
+                background: #3c4245;
+            }
+
+            .account-item {
+                background: #4a5257;
+                color: #fff;
+            }
+        }
+
+        /* ========== PRINT STYLES ========== */
+        @media print {
+            body {
+                background: white !important;
+            }
+
+            .login-card {
+                box-shadow: none !important;
+                border: 1px solid #ccc;
+            }
+
+            .btn, .test-accounts, .footer {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container login-container">
+    <div class="container">
+        <!-- Login Card -->
         <div class="login-card">
+            <!-- Logo -->
             <div class="logo">
-                <i class="fas fa-fingerprint"></i>
-                <h1>ABSENSI DIGITAL</h1>
-                <p>Sistem Kehadiran Karyawan</p>
+                <div class="logo-icon">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <h1>SISTEM ABSENSI DIGITAL</h1>
+                <p>Manajemen Kehadiran Karyawan</p>
             </div>
-            
+
+            <!-- Login Form -->
             <form id="loginForm">
+                <!-- Username Input -->
                 <div class="form-group">
-                    <label for="username"><i class="fas fa-user"></i> Username</label>
-                    <input type="text" id="username" placeholder="Masukkan username" required>
+                    <label for="username">
+                        <i class="fas fa-user"></i> Username
+                    </label>
+                    <div class="input-group">
+                        <i class="fas fa-user-circle"></i>
+                        <input type="text" 
+                               id="username" 
+                               class="form-control" 
+                               placeholder="Masukkan username"
+                               required
+                               autocomplete="username"
+                               autofocus>
+                    </div>
+                    <div id="usernameError" class="error-message" style="display: none;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span></span>
+                    </div>
                 </div>
-                
+
+                <!-- Password Input -->
                 <div class="form-group">
-                    <label for="password"><i class="fas fa-lock"></i> Password</label>
-                    <input type="password" id="password" placeholder="Masukkan password" required>
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Password
+                    </label>
+                    <div class="input-group">
+                        <i class="fas fa-key"></i>
+                        <input type="password" 
+                               id="password" 
+                               class="form-control" 
+                               placeholder="Masukkan password"
+                               required
+                               autocomplete="current-password">
+                        <button type="button" class="password-toggle" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div id="passwordError" class="error-message" style="display: none;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span></span>
+                    </div>
                 </div>
-                
-                <button type="submit" class="btn btn-primary btn-block">
-                    <i class="fas fa-sign-in-alt"></i> MASUK
+
+                <!-- Remember Me (Optional) -->
+                <div class="form-group" style="margin-bottom: 30px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <input type="checkbox" id="rememberMe" style="margin-right: 8px;">
+                            <label for="rememberMe" style="font-size: 14px; color: var(--gray); cursor: pointer;">
+                                Ingat saya
+                            </label>
+                        </div>
+                        <a href="#" id="forgotPassword" style="font-size: 14px; color: var(--secondary); text-decoration: none;">
+                            Lupa password?
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+                    <span>MASUK KE SISTEM</span>
+                    <i class="fas fa-sign-in-alt"></i>
                 </button>
-                
-                <div class="login-info">
-                    <p><i class="fas fa-info-circle"></i> Gunakan username dan password yang diberikan HRD</p>
-                    <p><strong>Admin:</strong> admin / admin123</p>
-                    <p><strong>Karyawan:</strong> nita / password123</p>
-                </div>
             </form>
+
+            <!-- Login Information -->
+            <div class="login-info">
+                <h4><i class="fas fa-info-circle"></i> Informasi Login</h4>
+                <p>Sistem ini digunakan untuk mencatat kehadiran karyawan. Silakan gunakan akun yang diberikan oleh HRD.</p>
+                <p><strong>Catatan:</strong> Data disimpan di browser ini saja. Untuk akses di device lain, gunakan ekspor/import data.</p>
+            </div>
+
+            <!-- Test Accounts -->
+            <div class="test-accounts">
+                <h4><i class="fas fa-vial"></i> Akun Demo (Testing)</h4>
+                <div class="account-grid">
+                    <div class="account-item">
+                        <div class="account-role admin">ADMIN</div>
+                        <div class="account-details">
+                            <span class="username">admin</span> / 
+                            <span class="password">admin123</span>
+                            <div style="font-size: 11px; color: var(--gray); margin-top: 2px;">
+                                Akses penuh semua fitur
+                            </div>
+                        </div>
+                    </div>
+                    <div class="account-item">
+                        <div class="account-role">KARYAWAN</div>
+                        <div class="account-details">
+                            <span class="username">nita</span> / 
+                            <span class="password">password123</span>
+                            <div style="font-size: 11px; color: var(--gray); margin-top: 2px;">
+                                Absensi & dashboard pribadi
+                            </div>
+                        </div>
+                    </div>
+                    <div class="account-item">
+                        <div class="account-role">KARYAWAN</div>
+                        <div class="account-details">
+                            <span class="username">sutris</span> / 
+                            <span class="password">password123</span>
+                            <div style="font-size: 11px; color: var(--gray); margin-top: 2px;">
+                                HR Manager (role employee)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
+
+        <!-- Footer -->
         <div class="footer">
-            <p>Sistem Absensi &copy; 2024 - Versi 1.0</p>
-            <p class="warning"><i class="fas fa-exclamation-triangle"></i> Data tersimpan di browser ini saja</p>
+            <p>Sistem Absensi Karyawan &copy; 2024 - Versi 2.0</p>
+            <p>Dikembangkan untuk kemudahan manajemen kehadiran</p>
+            <div class="warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                Data tersimpan di browser lokal (localStorage)
+            </div>
         </div>
     </div>
-    
+
+    <!-- JavaScript -->
     <script src="auth.js"></script>
+    <script>
+        // ========== DOM ELEMENTS ==========
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const togglePasswordBtn = document.getElementById('togglePassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const usernameError = document.getElementById('usernameError');
+        const passwordError = document.getElementById('passwordError');
+        const forgotPasswordLink = document.getElementById('forgotPassword');
+        const rememberMeCheckbox = document.getElementById('rememberMe');
+
+        // ========== PASSWORD VISIBILITY TOGGLE ==========
+        togglePasswordBtn.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle icon
+            const icon = this.querySelector('i');
+            if (type === 'text') {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+                this.setAttribute('title', 'Sembunyikan password');
+            } else {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+                this.setAttribute('title', 'Tampilkan password');
+            }
+        });
+
+        // ========== REMEMBER ME FUNCTIONALITY ==========
+        // Load saved credentials if "Remember Me" was checked
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedUsername = localStorage.getItem('rememberedUsername');
+            const savedPassword = localStorage.getItem('rememberedPassword');
+            const rememberMe = localStorage.getItem('rememberMe') === 'true';
+            
+            if (rememberMe && savedUsername && savedPassword) {
+                usernameInput.value = savedUsername;
+                passwordInput.value = savedPassword;
+                rememberMeCheckbox.checked = true;
+            }
+        });
+
+        // ========== FORM VALIDATION ==========
+        function showError(element, message) {
+            element.style.display = 'flex';
+            element.querySelector('span').textContent = message;
+            element.parentElement.querySelector('.form-control').style.borderColor = 'var(--danger)';
+        }
+
+        function clearError(element) {
+            element.style.display = 'none';
+            element.parentElement.querySelector('.form-control').style.borderColor = '';
+        }
+
+        function validateForm() {
+            let isValid = true;
+            
+            // Clear previous errors
+            clearError(usernameError);
+            clearError(passwordError);
+            
+            // Validate username
+            if (!usernameInput.value.trim()) {
+                showError(usernameError, 'Username harus diisi');
+                isValid = false;
+            }
+            
+            // Validate password
+            if (!passwordInput.value) {
+                showError(passwordError, 'Password harus diisi');
+                isValid = false;
+            } else if (passwordInput.value.length < 6) {
+                showError(passwordError, 'Password minimal 6 karakter');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+
+        // ========== LOGIN FUNCTION ==========
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            // Validate form
+            if (!validateForm()) {
+                return;
+            }
+            
+            // Get form data
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+            const rememberMe = rememberMeCheckbox.checked;
+            
+            // Show loading state
+            loginBtn.classList.add('btn-loading');
+            loginBtn.innerHTML = '<div class="spinner"></div><span>Sedang memproses...</span>';
+            loginBtn.disabled = true;
+            
+            // Simulate network delay for better UX
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            try {
+                // Use auth system from auth.js
+                const result = auth.login(username, password);
+                
+                if (result.success) {
+                    // Handle "Remember Me"
+                    if (rememberMe) {
+                        localStorage.setItem('rememberedUsername', username);
+                        localStorage.setItem('rememberedPassword', password);
+                        localStorage.setItem('rememberMe', 'true');
+                    } else {
+                        localStorage.removeItem('rememberedUsername');
+                        localStorage.removeItem('rememberedPassword');
+                        localStorage.removeItem('rememberMe');
+                    }
+                    
+                    // Show success message
+                    showNotification('Login berhasil! Mengalihkan...', 'success');
+                    
+                    // Log login activity
+                    console.log(`User ${username} logged in successfully at ${new Date().toLocaleTimeString()}`);
+                    
+                    // Redirect after delay
+                    setTimeout(() => {
+                        window.location.href = result.redirect;
+                    }, 1000);
+                    
+                } else {
+                    // Handle login failure
+                    if (result.locked) {
+                        showError(passwordError, 'Akun terkunci. Coba lagi nanti.');
+                    } else if (result.message.includes('password salah')) {
+                        showError(passwordError, result.message);
+                        
+                        // Show lock warning if close to lockout
+                        if (result.attempts >= 3) {
+                            showNotification(`Peringatan: ${4 - result.attempts} percobaan tersisa sebelum akun terkunci`, 'warning');
+                        }
+                    } else {
+                        showError(usernameError, result.message);
+                    }
+                    
+                    // Shake form for error feedback
+                    loginCard.style.animation = 'shake 0.5s ease';
+                    setTimeout(() => {
+                        loginCard.style.animation = '';
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('Terjadi kesalahan sistem. Coba lagi.', 'error');
+            } finally {
+                // Reset button state
+                loginBtn.classList.remove('btn-loading');
+                loginBtn.innerHTML = '<span>MASUK KE SISTEM</span><i class="fas fa-sign-in-alt"></i>';
+                loginBtn.disabled = false;
+            }
+        }
+
+        // ========== FORGOT PASSWORD ==========
+        forgotPasswordLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Show info for password reset
+            const message = `
+                <strong>Lupa Password?</strong><br><br>
+                Untuk karyawan: Hubungi admin/HRD untuk reset password.<br>
+                Default password: <code>password123</code><br><br>
+                Untuk admin: Password default adalah <code>admin123</code>
+            `;
+            
+            showNotification(message, 'info');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                const notification = document.querySelector('.notification');
+                if (notification) notification.remove();
+            }, 5000);
+        });
+
+        // ========== ENTER KEY SUBMIT ==========
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.target === usernameInput || e.target === passwordInput)) {
+                if (usernameInput.value && passwordInput.value) {
+                    handleLogin(e);
+                }
+            }
+        });
+
+        // ========== FORM SUBMISSION ==========
+        loginForm.addEventListener('submit', handleLogin);
+
+        // ========== AUTO-FOCUS USERNAME ON LOAD ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // If username is empty, focus on it
+            if (!usernameInput.value) {
+                usernameInput.focus();
+            }
+            
+            // Check if user is already logged in
+            if (auth.isLoggedIn()) {
+                const user = auth.getCurrentUser();
+                if (user.role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'employee.html';
+                }
+            }
+        });
+
+        // ========== UTILITY FUNCTIONS ==========
+        function showNotification(message, type = 'info') {
+            // Remove existing notification
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateY(-10px)';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+            
+            return notification;
+        }
+
+        // Make notification function globally available
+        window.showNotification = showNotification;
+    </script>
 </body>
 </html>
-
