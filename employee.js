@@ -1,457 +1,321 @@
-// Employee Dashboard JavaScript
-class EmployeeDashboard {
-    constructor() {
-        this.init();
-    }
+// absensi-karyawan/employee.js
 
-    init() {
-        // Check authentication
-        if (!auth.requireAuth()) return;
-        
-        // Check if user is employee
-        if (auth.isAdmin()) {
-            window.location.href = 'admin.html';
-            return;
-        }
-        
-        // Load user data
-        this.loadUserData();
-        
-        // Load dashboard data
-        this.loadDashboardData();
-        
-        // Initialize event listeners
-        this.initEventListeners();
-        
-        // Start auto refresh
-        this.startAutoRefresh();
-    }
+let currentUser;
+let todayRecord;
+const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
 
-    loadUserData() {
-        const user = auth.getCurrentUser();
-        if (!user) return;
-        
-        // Update UI with user data
-        document.getElementById('userName').textContent = user.name;
-        document.getElementById('profileName').textContent = user.name;
-        document.getElementById('profilePosition').textContent = user.position || 'Karyawan';
-        document.getElementById('profileUsername').textContent = user.username;
-        document.getElementById('profileJoinDate').textContent = 
-            user.created_at ? Utils.formatDate(user.created_at) : '-';
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Cek Autentikasi
+    currentUser = checkAuth('employee'); 
+    if (!currentUser) return;
 
-    loadDashboardData() {
-        const user = auth.getCurrentUser();
-        if (!user) return;
-        
-        // Load today's date and day info
-        this.loadDateInfo();
-        
-        // Load today's attendance status
-        this.loadTodayAttendance();
-        
-        // Load employee stats
-        this.loadEmployeeStats();
-        
-        // Load recent history
-        this.loadRecentHistory();
-        
-        // Load today's history
-        this.loadTodayHistory();
-        
-        // Load top employees
-        this.loadTopEmployees();
-    }
+    document.getElementById('userGreeting').textContent = `Halo, ${currentUser.name.split(',')[0]}!`;
 
-    loadDateInfo() {
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        
-        document.getElementById('currentDate').textContent = dateStr;
-        
-        // Check if today is Sunday or holiday
-        const todayStr = now.toISOString().split('T')[0];
-        const holidays = db.getHolidays();
-        const isHoliday = holidays.some(h => h.date === todayStr);
-        
-        if (now.getDay() === 0) {
-            document.getElementById('dayInfo').textContent = 'Hari Minggu - Libur';
-            document.getElementById('holidayInfo').style.display = 'block';
-            document.getElementById('checkInSection').style.display = 'none';
-        } else if (isHoliday) {
-            const holiday = holidays.find(h => h.date === todayStr);
-            document.getElementById('dayInfo').textContent = `Hari Libur - ${holiday.description}`;
-            document.getElementById('holidayInfo').style.display = 'block';
-            document.getElementById('checkInSection').style.display = 'none';
+    // 2. Tampilkan Jam Real-time
+    setInterval(updateClock, 1000); 
+
+    // 3. Muat Data
+    loadEmployeeDashboard();
+
+    // 4. Inisialisasi Tombol Konfirmasi Modal
+    document.getElementById('confirmStatusBtn').addEventListener('click', () => {
+        const status = document.getElementById('statusSelect').value;
+        const notes = document.getElementById('notesInput').value.trim();
+
+        if (status && notes) {
+            handleCheckIn(status, notes);
+            statusModal.hide();
         } else {
-            document.getElementById('dayInfo').textContent = 'Hari Kerja';
+            showAlert('Pilih status dan isi catatan wajib.', 'warning');
         }
+    });
+});
+
+function updateClock() {
+    const now = new Date();
+    document.getElementById('clockDisplay').textContent = now.toLocaleTimeString('id-ID', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+}
+
+function loadEmployeeDashboard() {
+    const now = new Date();
+
+    // Cek Hari Libur
+    if (isHoliday(now)) {
+        document.getElementById('holidayMessage').classList.remove('d-none');
+        document.getElementById('statusIndicator').innerHTML = ''; 
+        document.getElementById('currentAttendanceInfo').innerHTML = '';
+        return;
     }
 
-    loadTodayAttendance() {
-        const user = auth.getCurrentUser();
-        if (!user) return;
-        
-        const attendance = db.getTodayAttendance(user.id);
-        
-        // Update current time in modals
-        document.getElementById('currentCheckinTime').textContent = Utils.getCurrentTime();
-        document.getElementById('currentCheckoutTime').textContent = Utils.getCurrentTime();
-        
-        if (!attendance) {
-            // Not checked in yet
-            document.getElementById('checkInSection').style.display = 'block';
-            document.getElementById('checkOutSection').style.display = 'none';
-            document.getElementById('alreadyAttended').style.display = 'none';
-            
-            document.getElementById('attendanceStatus').textContent = 'Belum Absen';
-            document.getElementById('attendanceStatus').className = 'status-alfa';
-            document.getElementById('lateStatus').textContent = '-';
-        } else {
-            // Already checked in
-            document.getElementById('checkInSection').style.display = 'none';
-            document.getElementById('alreadyAttended').style.display = 'block';
-            
-            document.getElementById('attendanceInfo').innerHTML = `
-                <strong>Status:</strong> ${attendance.status}<br>
-                <strong>Masuk:</strong> ${Utils.formatTime(attendance.time_in)}<br>
-                ${attendance.note ? `<strong>Catatan:</strong> ${attendance.note}<br>` : ''}
-                ${attendance.late_minutes > 0 ? 
-                    `<strong>Telat:</strong> ${attendance.late_minutes} menit` : ''}
-            `;
-            
-            document.getElementById('attendanceStatus').textContent = attendance.status;
-            document.getElementById('attendanceStatus').className = `status-${attendance.status.toLowerCase()}`;
-            
-            if (attendance.late_minutes > 0) {
-                document.getElementById('lateStatus').innerHTML = `
-                    <span class="text-danger">Telat ${attendance.late_minutes} menit</span>
-                `;
-            } else {
-                document.getElementById('lateStatus').innerHTML = `
-                    <span class="text-success">Tepat Waktu</span>
-                `;
-            }
-            
-            if (!attendance.time_out) {
-                // Not checked out yet
-                document.getElementById('checkOutSection').style.display = 'block';
-                document.getElementById('checkoutTime').textContent = 
-                    `Waktu keluar standar: 15:30 | Saat ini: ${Utils.getCurrentTime()}`;
-            } else {
-                // Already checked out
-                document.getElementById('alreadyAttended').innerHTML += `
-                    <hr>
-                    <strong>Keluar:</strong> ${Utils.formatTime(attendance.time_out)}
-                `;
-            }
-        }
-    }
+    // Cek Absensi Hari Ini
+    todayRecord = getTodayAttendance(currentUser.id);
 
-    loadEmployeeStats() {
-        const user = auth.getCurrentUser();
-        if (!user) return;
-        
-        const now = new Date();
-        const stats = db.getEmployeeStats(user.id, now.getMonth() + 1, now.getFullYear());
-        
-        // Update UI
-        document.getElementById('attendanceRate').textContent = stats.attendance_rate + '%';
-        document.getElementById('attendanceProgress').style.width = stats.attendance_rate + '%';
-        
-        document.getElementById('presentCount').textContent = stats.present;
-        document.getElementById('lateCount').textContent = stats.late;
-        document.getElementById('leaveCount').textContent = stats.permission + stats.sick + stats.leave;
-        
-        // Update profile stats
-        document.getElementById('profileAttendance').textContent = stats.attendance_rate + '%';
-        document.getElementById('profileLate').textContent = stats.late + 'x';
-    }
+    renderAttendanceCard(todayRecord);
+    renderPersonalStats();
+    renderAttendanceHistory();
+    renderRankingList();
+}
 
-    loadRecentHistory() {
-        const user = auth.getCurrentUser();
-        if (!user) return;
-        
-        const attendances = db.getAttendances({ 
-            employeeId: user.id 
-        }).slice(0, 10); // Get last 10 records
-        
-        const historyContainer = document.getElementById('recentHistory');
-        
-        if (attendances.length === 0) {
-            historyContainer.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="fas fa-history fa-2x text-muted mb-2"></i>
-                    <p class="text-muted">Belum ada riwayat absensi</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        attendances.forEach(attendance => {
-            const isToday = attendance.date === Utils.getTodayDate();
-            const todayClass = isToday ? 'today-history' : '';
-            
-            html += `
-                <div class="history-item ${todayClass}">
-                    <div class="history-date">
-                        <strong>${Utils.formatDate(attendance.date)}</strong>
-                        ${isToday ? '<span class="badge bg-primary">Hari Ini</span>' : ''}
-                    </div>
-                    <div class="history-details">
-                        <div class="row">
-                            <div class="col-6">
-                                <small>Masuk</small>
-                                <div>${Utils.formatTime(attendance.time_in)}</div>
-                            </div>
-                            <div class="col-6">
-                                <small>Keluar</small>
-                                <div>${Utils.formatTime(attendance.time_out)}</div>
-                            </div>
-                        </div>
-                        <div class="history-status mt-2">
-                            ${Utils.getStatusBadge(attendance.status)}
-                            ${Utils.getLateBadge(attendance.late_minutes)}
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        historyContainer.innerHTML = html;
-    }
+function renderAttendanceCard(record) {
+    const indicatorDiv = document.getElementById('statusIndicator');
+    const infoDiv = document.getElementById('currentAttendanceInfo');
+    
+    indicatorDiv.innerHTML = '';
+    infoDiv.innerHTML = '';
 
-    loadTodayHistory() {
-        const today = Utils.getTodayDate();
-        const attendances = db.getAttendances({ date: today });
-        
-        const tbody = document.getElementById('todayHistoryBody');
-        
-        if (attendances.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center py-4">
-                        <i class="fas fa-users fa-2x text-muted mb-2"></i>
-                        <p class="text-muted">Belum ada absensi hari ini</p>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-        
-        let html = '';
-        attendances.forEach(attendance => {
-            const employee = db.getEmployeeById(attendance.employee_id);
-            
-            html += `
-                <tr>
-                    <td>
-                        <strong>${employee.name}</strong>
-                        <br>
-                        <small class="text-muted">${employee.position}</small>
-                    </td>
-                    <td>
-                        ${Utils.formatTime(attendance.time_in)}
-                        ${attendance.late_minutes > 0 ? 
-                            `<br><small class="text-danger">Telat ${attendance.late_minutes}m</small>` : ''}
-                    </td>
-                    <td>${Utils.formatTime(attendance.time_out)}</td>
-                    <td>${Utils.getStatusBadge(attendance.status)}</td>
-                    <td>${attendance.note || '-'}</td>
-                </tr>
-            `;
-        });
-        
-        tbody.innerHTML = html;
-    }
+    if (!record) {
+        // BELUM ABSEN MASUK
+        indicatorDiv.innerHTML = `
+            <div class="alert alert-warning mb-3 fw-bold">Menunggu Absen Masuk</div>
+            <button class="btn btn-success main-action-btn w-100 mb-2" onclick="handleCheckIn('Hadir')">
+                <i class="bi bi-clock-fill"></i> ABSEN MASUK
+            </button>
+            <button class="btn btn-info main-action-btn w-100" onclick="showCheckInModal()">
+                <i class="bi bi-file-earmark-text-fill"></i> IZIN/SAKIT/CUTI
+            </button>
+        `;
+    } else if (!record.checkOutTime) {
+        // SUDAH ABSEN MASUK, BELUM KELUAR
+        const standardOutTime = `${JAM_KELUAR_STANDAR.hour}:${String(JAM_KELUAR_STANDAR.minute).padStart(2, '0')}`;
+        const lateInfo = record.isLate ? `<span class="badge bg-danger">Terlambat ${record.lateMinutes} menit</span>` : '<span class="badge bg-success">Tepat Waktu</span>';
 
-    loadTopEmployees() {
-        const topEmployees = db.getTopEmployees(5);
-        const container = document.getElementById('topEmployees');
-        
-        if (topEmployees.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="fas fa-trophy fa-2x text-muted mb-2"></i>
-                    <p class="text-muted">Data belum tersedia</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        topEmployees.forEach((employee, index) => {
-            const medalClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
-            const medalIcon = index < 3 ? `<i class="fas fa-medal ${medalClass}"></i>` : `<span class="rank">${index + 1}</span>`;
-            
-            html += `
-                <div class="top-employee-item">
-                    <div class="employee-rank">
-                        ${medalIcon}
-                    </div>
-                    <div class="employee-info">
-                        <strong>${employee.name}</strong>
-                        <small class="text-muted d-block">${employee.position}</small>
-                    </div>
-                    <div class="employee-score">
-                        <span class="badge bg-success">${employee.score} poin</span>
-                    </div>
-                </div>
-            `;
-        });
-        
-        container.innerHTML = html;
-    }
+        indicatorDiv.innerHTML = `
+            <div class="alert alert-primary mb-3 fw-bold">Sudah Absen Masuk. Siap Absen Keluar Pukul ${standardOutTime}</div>
+            <button class="btn btn-primary main-action-btn w-100" onclick="handleCheckOut()">
+                <i class="bi bi-box-arrow-right"></i> ABSEN KELUAR
+            </button>
+        `;
+        infoDiv.innerHTML = `
+            <p class="mt-3">Masuk: **${record.checkInTime}** (${record.status}) ${lateInfo}</p>
+        `;
+    } else {
+        // SUDAH ABSEN KELUAR
+        indicatorDiv.innerHTML = `
+            <div class="alert alert-success fw-bold">Absensi Hari Ini Selesai!</div>
+        `;
+        const lateInfo = record.isLate ? `<span class="badge bg-danger">Terlambat ${record.lateMinutes}m</span>` : '<span class="badge bg-success">Tepat Waktu</span>';
 
-    initEventListeners() {
-        // Check-in button
-        document.getElementById('checkInBtn').addEventListener('click', () => {
-            const modal = new bootstrap.Modal(document.getElementById('checkInModal'));
-            modal.show();
-        });
-        
-        // Confirm check-in
-        document.getElementById('confirmCheckin').addEventListener('click', () => {
-            this.performCheckIn();
-        });
-        
-        // Check-out button
-        document.getElementById('checkOutBtn').addEventListener('click', () => {
-            const modal = new bootstrap.Modal(document.getElementById('checkOutModal'));
-            modal.show();
-        });
-        
-        // Confirm check-out
-        document.getElementById('confirmCheckout').addEventListener('click', () => {
-            this.performCheckOut();
-        });
-        
-        // Profile button
-        document.getElementById('profileBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            const modal = new bootstrap.Modal(document.getElementById('profileModal'));
-            modal.show();
-        });
-        
-        // Logout button
-        document.getElementById('logoutBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.logout();
-        });
-        
-        // Auto update attendance type selection
-        document.getElementById('attendanceType').addEventListener('change', (e) => {
-            const noteField = document.getElementById('attendanceNote');
-            const requiredTypes = ['Izin', 'Sakit', 'Cuti'];
-            
-            if (requiredTypes.includes(e.target.value)) {
-                noteField.setAttribute('required', 'true');
-                noteField.setAttribute('placeholder', 'Wajib diisi untuk Izin/Sakit/Cuti');
-            } else {
-                noteField.removeAttribute('required');
-                noteField.setAttribute('placeholder', 'Masukkan alasan jika izin, sakit, atau cuti');
-            }
-        });
-    }
-
-    performCheckIn() {
-        const user = auth.getCurrentUser();
-        if (!user) return;
-        
-        const attendanceType = document.getElementById('attendanceType').value;
-        const note = document.getElementById('attendanceNote').value.trim();
-        
-        // Validate note for certain types
-        const requiresNote = ['Izin', 'Sakit', 'Cuti'].includes(attendanceType);
-        if (requiresNote && !note) {
-            Utils.showToast('Harap isi catatan untuk status ' + attendanceType, 'error');
-            return;
-        }
-        
-        try {
-            Utils.showLoading('Memproses absen masuk...');
-            
-            const attendance = db.checkIn(user.id, attendanceType, note);
-            
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('checkInModal')).hide();
-            
-            // Update UI
-            setTimeout(() => {
-                this.loadTodayAttendance();
-                this.loadEmployeeStats();
-                this.loadRecentHistory();
-                this.loadTodayHistory();
-                Utils.showToast('Absen masuk berhasil dicatat!', 'success');
-                Utils.hideLoading();
-            }, 500);
-            
-        } catch (error) {
-            Utils.hideLoading();
-            Utils.showToast(error.message, 'error');
-        }
-    }
-
-    performCheckOut() {
-        const user = auth.getCurrentUser();
-        if (!user) return;
-        
-        const note = document.getElementById('checkoutNote').value.trim();
-        
-        try {
-            Utils.showLoading('Memproses absen keluar...');
-            
-            const attendance = db.checkOut(user.id);
-            
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('checkOutModal')).hide();
-            
-            // Update UI
-            setTimeout(() => {
-                this.loadTodayAttendance();
-                this.loadRecentHistory();
-                this.loadTodayHistory();
-                Utils.showToast('Absen keluar berhasil dicatat!', 'success');
-                Utils.hideLoading();
-            }, 500);
-            
-        } catch (error) {
-            Utils.hideLoading();
-            Utils.showToast(error.message, 'error');
-        }
-    }
-
-    logout() {
-        Utils.confirm('Konfirmasi Logout', 'Apakah Anda yakin ingin logout?', 'Logout', 'Batal')
-            .then(confirmed => {
-                if (confirmed) {
-                    auth.logout();
-                }
-            });
-    }
-
-    startAutoRefresh() {
-        // Refresh every 30 seconds
-        setInterval(() => {
-            this.loadTodayAttendance();
-            this.loadTodayHistory();
-        }, 30000);
-        
-        // Update time every second
-        setInterval(() => {
-            document.getElementById('currentTime').textContent = 
-                new Date().toLocaleTimeString('id-ID');
-        }, 1000);
+        infoDiv.innerHTML = `
+            <p class="mt-3">Masuk: **${record.checkInTime}** | Keluar: **${record.checkOutTime}**</p>
+            <p class="mb-0">Status: **${record.status}** ${lateInfo}</p>
+        `;
     }
 }
 
-// Initialize dashboard when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    new EmployeeDashboard();
-});
+function showCheckInModal() {
+    document.getElementById('statusSelect').value = '';
+    document.getElementById('notesInput').value = '';
+    statusModal.show();
+}
+
+/**
+ * Menangani Absen Masuk (Hadir atau Izin/Sakit/Cuti)
+ */
+function handleCheckIn(status, notes = null) {
+    if (getTodayAttendance(currentUser.id)) {
+        showAlert('Anda sudah Absen Masuk hari ini.', 'danger');
+        return;
+    }
+    
+    const now = new Date();
+    const checkInTime = formatTime(now);
+    const date = getFormattedDate(now);
+    const lateMinutes = calculateLateMinutes(now);
+    const isLate = lateMinutes > 0;
+
+    const newRecord = {
+        id: Date.now().toString(), // ID unik
+        userId: currentUser.id,
+        name: currentUser.name,
+        date: date,
+        status: status,
+        checkInTime: checkInTime,
+        checkOutTime: null,
+        isLate: isLate,
+        lateMinutes: lateMinutes,
+        notes: notes,
+        // Log Perubahan Sederhana
+        log: [`Dibuat ${now.toISOString()} oleh ${currentUser.id}`] 
+    };
+
+    const records = getAttendanceRecords();
+    records.push(newRecord);
+    saveAttendanceRecords(records);
+    todayRecord = newRecord;
+
+    showAlert(`Absen Masuk Berhasil! Status: ${status}`, 'success');
+    loadEmployeeDashboard(); // Muat ulang dashboard
+}
+
+/**
+ * Menangani Absen Keluar
+ */
+function handleCheckOut() {
+    if (!todayRecord || todayRecord.checkOutTime) {
+        showAlert('Anda belum Absen Masuk atau sudah Absen Keluar.', 'danger');
+        return;
+    }
+    
+    const now = new Date();
+    const checkOutTime = formatTime(now);
+
+    const records = getAttendanceRecords();
+    const index = records.findIndex(r => r.id === todayRecord.id);
+
+    if (index !== -1) {
+        records[index].checkOutTime = checkOutTime;
+        records[index].log.push(`Absen Keluar ${now.toISOString()} oleh ${currentUser.id}`);
+        saveAttendanceRecords(records);
+        todayRecord = records[index];
+        showAlert('Absen Keluar Berhasil!', 'success');
+        loadEmployeeDashboard(); // Muat ulang dashboard
+    }
+}
+
+/**
+ * Render Riwayat Singkat 5-10 Absensi Terakhir
+ */
+function renderAttendanceHistory() {
+    const historyBody = document.getElementById('attendanceHistory');
+    const allRecords = getAttendanceRecords()
+        .filter(r => r.userId === currentUser.id)
+        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Urutkan terbaru ke terlama
+
+    historyBody.innerHTML = '';
+    
+    const recordsToShow = allRecords.slice(0, 7);
+
+    if (recordsToShow.length === 0) {
+        historyBody.innerHTML = '<tr><td colspan="4" class="text-center">Belum ada riwayat absensi.</td></tr>';
+        return;
+    }
+
+    recordsToShow.forEach(record => {
+        let statusClass = '';
+        if (record.status === 'Hadir' && record.isLate) statusClass = 'text-danger';
+        if (record.status === 'Sakit') statusClass = 'text-info';
+        if (record.status === 'Izin' || record.status === 'Cuti') statusClass = 'text-warning';
+        if (record.status === 'Alfa') statusClass = 'text-danger fw-bold';
+
+        historyBody.innerHTML += `
+            <tr>
+                <td>${record.date}</td>
+                <td>${record.checkInTime || '-'}</td>
+                <td>${record.checkOutTime || '-'}</td>
+                <td class="${statusClass}">${record.status}</td>
+            </tr>
+        `;
+    });
+}
+
+/**
+ * Menghitung dan menampilkan Statistik Pribadi Bulan Ini
+ */
+function renderPersonalStats() {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const records = getAttendanceRecords().filter(r => r.userId === currentUser.id);
+
+    let totalHadir = 0;
+    let totalTelat = 0;
+    let totalHariKerja = 0;
+
+    // Perhitungan hari kerja dari awal bulan hingga hari ini
+    const startOfMonth = new Date(currentYear, currentMonth, 1);
+    let currentDate = new Date(startOfMonth);
+    
+    while (currentDate <= today) {
+        if (!isHoliday(currentDate)) {
+            totalHariKerja++;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    records.forEach(r => {
+        const recordDate = new Date(r.date);
+        if (recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear) {
+            // Hanya hitung status Hadir sebagai 'Hadir' untuk persentase kehadiran
+            if (r.status === 'Hadir' || r.status === 'Izin' || r.status === 'Sakit' || r.status === 'Cuti') {
+                 // Untuk statistik: Hadir = Status Hadir Tepat Waktu
+                if (r.status === 'Hadir' && !r.isLate) {
+                    totalHadir++;
+                }
+            }
+            if (r.isLate) {
+                totalTelat++;
+            }
+        }
+    });
+
+    const totalAbsenTercatat = records.filter(r => {
+        const recordDate = new Date(r.date);
+        return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+    }).length;
+
+    // Jika Hari Kerja > 0, hitung persentase. Kita anggap totalHariKerja adalah dasar absensi wajib
+    const attendancePercentage = totalHariKerja > 0 ? Math.round((totalAbsenTercatat / totalHariKerja) * 100) : 0;
+    
+    document.getElementById('statHadir').textContent = `${attendancePercentage}%`;
+    document.getElementById('statTelat').textContent = `${totalTelat}x`;
+}
+
+/**
+ * Menghitung dan merender Peringkat Teladan (Mockup Kriteria)
+ */
+function renderRankingList() {
+    const listElement = document.getElementById('rankingList');
+    listElement.innerHTML = '';
+    
+    const allRecords = getAttendanceRecords();
+    const allUsers = getUsers().filter(u => u.role === 'employee');
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    const stats = allUsers.map(user => {
+        const userRecords = allRecords.filter(r => {
+            const date = new Date(r.date);
+            return r.userId === user.id && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+        });
+
+        let alfaCount = 0;
+        let nonHadirCount = 0; // Izin, Sakit, Cuti
+        let lateCount = 0;
+
+        userRecords.forEach(r => {
+            if (r.status === 'Alfa') alfaCount++;
+            if (r.status === 'Izin' || r.status === 'Sakit' || r.status === 'Cuti') nonHadirCount++;
+            if (r.isLate) lateCount++;
+        });
+
+        // Kriteria berlapis: Min Alfa -> Min Izin/Sakit/Cuti -> Min Telat
+        return {
+            name: user.name,
+            alfa: alfaCount,
+            nonHadir: nonHadirCount,
+            late: lateCount,
+            score: (alfaCount * 100) + (nonHadirCount * 10) + lateCount 
+            // Skor lebih kecil = lebih baik
+        };
+    }).sort((a, b) => a.score - b.score);
+
+    const top5 = stats.slice(0, 5);
+
+    top5.forEach((s, index) => {
+        let badge;
+        if (index === 0) badge = '<span class="badge bg-warning me-2"><i class="bi bi-star-fill"></i> Juara 1</span>';
+        else if (index === 1) badge = '<span class="badge bg-secondary me-2">Runner Up 1</span>';
+        else if (index === 2) badge = '<span class="badge bg-info me-2">Runner Up 2</span>';
+        else badge = `<span class="badge bg-light text-dark me-2">#${index + 1}</span>`;
+
+        listElement.innerHTML += `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>${badge} **${s.name.split(',')[0]}**</div>
+                <small class="text-muted">A:${s.alfa} | ISC:${s.nonHadir} | T:${s.late}</small>
+            </li>
+        `;
+    });
+}
