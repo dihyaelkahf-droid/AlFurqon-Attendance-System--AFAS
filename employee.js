@@ -1,305 +1,433 @@
 // employee.js
-// Handles employee dashboard and absensi actions (localStorage-based)
+// Inisialisasi auth
+const auth = new Auth();
+let currentUser = null;
 
-const SESSION_KEY = 'absensi_session';
-const RECORDS_KEY = 'absensi_records_v1';
-const HOLIDAYS_KEY = 'absensi_holidays_v1';
-const LOGS_KEY = 'absensi_logs_v1';
-
-const WORK_START = {hour:7, minute:30};
-const WORK_END = {hour:15, minute:30};
-
-function getSession() {
-  const s = sessionStorage.getItem(SESSION_KEY);
-  if (!s) { location.href = 'index.html'; return null; }
-  return JSON.parse(s);
-}
-
-function getRecords() {
-  return JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]');
-}
-
-function saveRecords(r) {
-  localStorage.setItem(RECORDS_KEY, JSON.stringify(r));
-}
-
-function getHolidays() {
-  return JSON.parse(localStorage.getItem(HOLIDAYS_KEY) || '[]');
-}
-
-function addLog(entry) {
-  const logs = JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
-  logs.push({...entry, timestamp: new Date().toISOString()});
-  localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
-}
-
-function isSunday(date) {
-  return new Date(date).getDay() === 0;
-}
-
-function isHoliday(dateStr) {
-  const holidays = getHolidays();
-  return holidays.includes(dateStr);
-}
-
-function fmtTime(date) {
-  return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-}
-
-function toDateString(d) {
-  const dt = new Date(d);
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth()+1).padStart(2,'0');
-  const day = String(dt.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
-}
-
-function minutesLate(checkinDate) {
-  const d = new Date(checkinDate);
-  const limit = new Date(d);
-  limit.setHours(WORK_START.hour, WORK_START.minute,0,0);
-  if (d <= limit) return 0;
-  return Math.round((d - limit)/60000);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const session = getSession();
-  if (!session) return;
-  const users = JSON.parse(localStorage.getItem('absensi_users_v1'));
-  const me = users.find(u => u.username === session.username);
-  document.getElementById('userGreeting').innerText = me ? me.name : session.username;
-
-  document.getElementById('logoutBtn').addEventListener('click', () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    location.href = 'index.html';
-  });
-
-  renderMainCard();
-  renderStats();
-  renderHistory();
-  renderRanking();
-
-  // modal handling
-  const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
-  document.getElementById('statusForm').addEventListener('submit', e => {
-    e.preventDefault();
-    statusModal.hide();
-    performCheckIn();
-  });
-
-  // Listen for check-out click via event delegation
-  document.getElementById('mainCard').addEventListener('click', e => {
-    if (e.target && e.target.id === 'btnCheckout') {
-      performCheckOut();
-    } else if (e.target && e.target.id === 'btnCheckin') {
-      // open modal for status selection
-      document.getElementById('statusNote').value = '';
-      document.getElementById('statusSelect').value = 'Hadir';
-      statusModal.show();
+// Cek login
+document.addEventListener('DOMContentLoaded', function() {
+    auth.requireAuth();
+    currentUser = auth.getCurrentUser();
+    
+    if (!currentUser || currentUser.role !== 'employee') {
+        window.location.href = 'index.html';
+        return;
     }
-  });
+    
+    initializeEmployeeDashboard();
 });
 
-function todayRecordForUser(username, dateStr) {
-  const r = getRecords();
-  return r.find(x => x.username === username && x.date === dateStr);
+function initializeEmployeeDashboard() {
+    // Update UI dengan data user
+    document.getElementById('employeeName').textContent = currentUser.name;
+    document.getElementById('greeting').textContent = `Selamat Datang, ${currentUser.name.split(' ')[0]}!`;
+    
+    // Update waktu real-time
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // Load data dashboard
+    loadDashboardData();
+    loadRecentHistory();
+    loadMonthlyStats();
+    loadTopPerformers();
+    
+    // Setup navigation
+    setupNavigation();
+    
+    // Check day off
+    checkDayOff();
 }
 
-function renderMainCard() {
-  const session = getSession();
-  const users = JSON.parse(localStorage.getItem('absensi_users_v1'));
-  const me = users.find(u => u.username === session.username);
-  const main = document.getElementById('mainCard');
-  const dateStr = toDateString(new Date());
-  const isSun = isSunday(new Date());
-  const holiday = isHoliday(dateStr);
-
-  let html = '';
-  if (isSun || holiday) {
-    html = `<div class="alert alert-info">Hari ini adalah hari libur. Anda tidak perlu absen.</div>`;
-  } else {
-    const rec = todayRecordForUser(session.username, dateStr);
-    if (!rec) {
-      // show Check-in button
-      html = `<button id="btnCheckin" class="btn btn-lg btn-success">ABSEN MASUK</button>`;
-      document.getElementById('statusTitle').innerText = 'Menunggu Absen Masuk';
-      document.getElementById('statusSubtitle').innerText = 'Tekan ABSEN MASUK saat sampai di kantor.';
-    } else {
-      // show Check-out if not yet checked out
-      const late = rec.lateMinutes && rec.status==='Hadir' ? ` (Terlambat ${rec.lateMinutes} menit)` : '';
-      if (!rec.checkoutTime) {
-        html = `<div class="mb-2"><strong>Anda sudah Absen Masuk pada ${rec.checkinDisplay}${late}</strong></div>
-                <button id="btnCheckout" class="btn btn-lg btn-primary">ABSEN KELUAR</button>
-                <div class="mt-2 small text-muted">Waktu keluar ideal: 15:30</div>`;
-      } else {
-        html = `<div><strong>Sudah Absen Hari Ini</strong></div>
-                <div class="small text-muted">Masuk: ${rec.checkinDisplay} — Keluar: ${rec.checkoutDisplay}</div>`;
-      }
-      document.getElementById('statusTitle').innerText = `Status: ${rec.status || 'Hadir'}`;
-      document.getElementById('statusSubtitle').innerText = rec.note ? `Catatan: ${rec.note}` : '';
+function updateDateTime() {
+    const now = new Date();
+    document.getElementById('currentDate').textContent = formatDate(now);
+    document.getElementById('currentTime').textContent = formatTime(now);
+    document.getElementById('attendanceDate').textContent = formatDate(now);
+    
+    // Update checkout time display jika modal terbuka
+    const checkoutDisplay = document.getElementById('checkoutTimeDisplay');
+    if (checkoutDisplay) {
+        checkoutDisplay.textContent = formatTime(now);
     }
-  }
-  main.innerHTML = html;
 }
 
-function performCheckIn() {
-  const session = getSession();
-  const users = JSON.parse(localStorage.getItem('absensi_users_v1'));
-  const me = users.find(u => u.username === session.username);
-
-  const status = document.getElementById('statusSelect').value;
-  const note = document.getElementById('statusNote').value.trim();
-
-  if (['Izin','Sakit','Cuti'].includes(status) && !note) {
-    showAlert('Catatan wajib diisi untuk Izin/Sakit/Cuti','warning');
-    return;
-  }
-
-  const now = new Date();
-  const dateStr = toDateString(now);
-  // check sunday or holiday
-  if (isSunday(now) || isHoliday(dateStr)) {
-    showAlert('Hari ini hari libur, tidak perlu absen.','info');
-    return;
-  }
-
-  // check duplicate
-  if (todayRecordForUser(session.username, dateStr)) {
-    showAlert('Anda sudah melakukan absen hari ini.','warning');
-    renderMainCard();
-    return;
-  }
-
-  // create record
-  const rec = {
-    username: session.username,
-    name: me.name,
-    date: dateStr,
-    checkinTime: now.toISOString(),
-    checkinDisplay: fmtTime(now),
-    checkoutTime: null,
-    checkoutDisplay: null,
-    status: status,
-    note: note,
-    lateMinutes: status === 'Hadir' ? minutesLate(now) : 0,
-    editedBy: null,
-    editedAt: null
-  };
-
-  const records = getRecords();
-  records.push(rec);
-  saveRecords(records);
-  addLog({action:'checkin', username: session.username, by: session.username, date: dateStr});
-  showAlert('Absen masuk berhasil','success');
-  renderMainCard();
-  renderHistory();
-  renderStats();
-  renderRanking();
+function loadDashboardData() {
+    // Get today's attendance
+    const todayAttendance = attendanceSystem.getTodayAttendance(currentUser.id);
+    
+    // Update attendance status
+    const statusElement = document.getElementById('todayStatus');
+    const checkInElement = document.getElementById('checkInTime');
+    const checkOutElement = document.getElementById('checkOutTime');
+    const notesElement = document.getElementById('notesText');
+    const notesContainer = document.getElementById('attendanceNotes');
+    
+    if (todayAttendance) {
+        const status = attendanceSystem.getAttendanceStatus(todayAttendance.checkIn, todayAttendance.status);
+        statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        
+        if (todayAttendance.checkIn) {
+            checkInElement.textContent = `Masuk: ${todayAttendance.checkIn}`;
+        }
+        
+        if (todayAttendance.checkOut) {
+            checkOutElement.textContent = `Keluar: ${todayAttendance.checkOut}`;
+        }
+        
+        if (todayAttendance.notes) {
+            notesElement.textContent = todayAttendance.notes;
+            notesContainer.style.display = 'block';
+        }
+        
+        // Update tombol absensi
+        updateAttendanceButtons(todayAttendance);
+    } else {
+        statusElement.textContent = 'Belum Absen';
+        checkInElement.textContent = 'Masuk: -';
+        checkOutElement.textContent = 'Keluar: -';
+        
+        // Tampilkan tombol absen masuk
+        updateAttendanceButtons(null);
+    }
+    
+    // Load monthly statistics
+    const monthlyStats = attendanceSystem.getMonthlyStats(currentUser.id);
+    
+    document.getElementById('presentCount').textContent = monthlyStats.present;
+    document.getElementById('attendancePercentage').textContent = `${monthlyStats.attendanceRate}%`;
+    document.getElementById('lateCount').textContent = monthlyStats.late;
+    document.getElementById('lateMinutes').textContent = `Total menit: ${monthlyStats.late * 5}`; // Estimasi
+    document.getElementById('permitCount').textContent = monthlyStats.sick + monthlyStats.permit;
+    document.getElementById('sickCount').textContent = monthlyStats.sick;
+    document.getElementById('leaveCount').textContent = monthlyStats.permit;
+    document.getElementById('absentCount').textContent = monthlyStats.alfa;
 }
 
-function performCheckOut() {
-  const session = getSession();
-  const now = new Date();
-  const dateStr = toDateString(now);
-  const records = getRecords();
-  const rec = records.find(x => x.username === session.username && x.date === dateStr);
-  if (!rec) {
-    showAlert('Anda belum absen masuk hari ini.','warning');
-    return;
-  }
-  if (rec.checkoutTime) {
-    showAlert('Anda sudah absen keluar hari ini.','info');
-    return;
-  }
-  rec.checkoutTime = now.toISOString();
-  rec.checkoutDisplay = fmtTime(now);
-  saveRecords(records);
-  addLog({action:'checkout', username: session.username, by: session.username, date: dateStr});
-  showAlert('Absen keluar berhasil','success');
-  renderMainCard();
-  renderHistory();
-  renderStats();
-  renderRanking();
+function updateAttendanceButtons(attendance) {
+    const buttonsContainer = document.getElementById('attendanceButtons');
+    buttonsContainer.innerHTML = '';
+    
+    // Check if today is Sunday or holiday
+    if (attendanceSystem.isDayOff()) {
+        buttonsContainer.innerHTML = `
+            <div class="alert" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; text-align: center;">
+                <i class="fas fa-calendar-times"></i> Hari ini adalah hari libur. Tidak ada absensi.
+            </div>
+        `;
+        return;
+    }
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    if (!attendance) {
+        // Belum absen masuk sama sekali
+        buttonsContainer.innerHTML = `
+            <button onclick="openCheckInModal()" class="btn btn-success btn-attendance">
+                <i class="fas fa-sign-in-alt fa-2x"></i>
+                <span>ABSEN MASUK</span>
+                <small>Sampai pukul 07:30</small>
+            </button>
+        `;
+    } else if (attendance.checkIn && !attendance.checkOut) {
+        // Sudah absen masuk, belum absen keluar
+        buttonsContainer.innerHTML = `
+            <button onclick="openCheckOutModal()" class="btn btn-primary btn-attendance">
+                <i class="fas fa-sign-out-alt fa-2x"></i>
+                <span>ABSEN KELUAR</span>
+                <small>Setelah pukul 15:30</small>
+            </button>
+        `;
+        
+        // Disable tombol jika belum waktunya
+        if (currentHour < 15) {
+            const button = buttonsContainer.querySelector('button');
+            button.disabled = true;
+            button.style.opacity = '0.6';
+            button.innerHTML = `
+                <i class="fas fa-clock fa-2x"></i>
+                <span>ABSEN KELUAR</span>
+                <small>Buka pukul 15:30</small>
+            `;
+        }
+    } else if (attendance.checkIn && attendance.checkOut) {
+        // Sudah absen keluar
+        buttonsContainer.innerHTML = `
+            <div class="alert" style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; text-align: center;">
+                <i class="fas fa-check-circle"></i> Absensi hari ini sudah selesai.
+            </div>
+        `;
+    }
 }
 
-function showAlert(msg, type='info') {
-  const el = document.getElementById('alert-placeholder');
-  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
-  setTimeout(()=> el.innerHTML = '', 3000);
+function openCheckInModal() {
+    document.getElementById('checkinModal').classList.add('active');
 }
 
-function renderHistory() {
-  const session = getSession();
-  const recs = getRecords().filter(r => r.username === session.username)
-    .sort((a,b)=> b.date.localeCompare(a.date))
-    .slice(0,10);
-
-  const container = document.getElementById('historyArea');
-  if (recs.length === 0) {
-    container.innerHTML = '<div class="small text-muted">Belum ada riwayat.</div>';
-    return;
-  }
-  let html = `<div class="table-responsive"><table class="table table-sm mb-0"><thead><tr>
-      <th>Tanggal</th><th>Masuk</th><th>Keluar</th><th>Status</th></tr></thead><tbody>`;
-  recs.forEach(r => {
-    html += `<tr><td>${r.date}</td><td>${r.checkinDisplay||'-'}</td><td>${r.checkoutDisplay||'-'}</td><td>${r.status}${r.lateMinutes>0?` (Terlambat ${r.lateMinutes}m)`:''}</td></tr>`;
-  });
-  html += `</tbody></table></div>`;
-  container.innerHTML = html;
+function openCheckOutModal() {
+    document.getElementById('checkoutModal').classList.add('active');
 }
 
-function renderStats() {
-  const session = getSession();
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-  const recs = getRecords().filter(r => {
-    const d = new Date(r.date);
-    return r.username === session.username && d.getMonth() === month && d.getFullYear() === year;
-  });
-
-  const totalDays = recs.length; // days with any action
-  const hadir = recs.filter(r => r.status==='Hadir').length;
-  const izin = recs.filter(r => r.status==='Izin').length;
-  const sakit = recs.filter(r => r.status==='Sakit').length;
-  const cuti = recs.filter(r => r.status==='Cuti').length;
-  const telat = recs.filter(r => r.lateMinutes>0).length;
-
-  const area = document.getElementById('statsArea');
-  area.innerHTML = `
-    <div class="row text-center">
-      <div class="col-6 mb-2"><div class="h4">${hadir}</div><div class="small text-muted">Hadir</div></div>
-      <div class="col-6 mb-2"><div class="h4">${telat}</div><div class="small text-muted">Terlambat</div></div>
-      <div class="col-6 mb-2"><div class="h4">${izin}</div><div class="small text-muted">Izin</div></div>
-      <div class="col-6 mb-2"><div class="h4">${sakit + cuti}</div><div class="small text-muted">Sakit/Cuti</div></div>
-    </div>
-  `;
+function closeModal() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.classList.remove('active');
+    });
 }
 
-function renderRanking() {
-  // Simple ranking calculation for top 5: fewer Alfa (not tracked client-side automatically),
-  // We'll base on attendance rate and tardiness: higher hadir & lower telat ranks higher.
-  const users = JSON.parse(localStorage.getItem('absensi_users_v1'));
-  const records = getRecords();
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
+function submitCheckIn() {
+    const status = document.getElementById('attendanceStatusSelect').value;
+    const notes = document.getElementById('attendanceNotesInput').value;
+    
+    // Validasi catatan untuk izin/sakit/cuti
+    if (status !== 'hadir' && !notes.trim()) {
+        showToast('Harap isi catatan untuk izin/sakit/cuti', 'error');
+        return;
+    }
+    
+    const result = attendanceSystem.addAttendance(currentUser.id, status, notes);
+    
+    if (result) {
+        showToast(`Absen ${result.action} berhasil!`, 'success');
+        closeModal();
+        loadDashboardData();
+        loadRecentHistory();
+        loadMonthlyStats();
+    } else {
+        showToast('Gagal melakukan absen', 'error');
+    }
+}
 
-  const scores = users.map(u => {
-    const recs = records.filter(r => r.username === u.username && new Date(r.date).getMonth() === month && new Date(r.date).getFullYear() === year);
-    const hadir = recs.filter(r => r.status === 'Hadir').length;
-    const telat = recs.filter(r => r.lateMinutes>0).length;
-    const score = (hadir*10) - (telat*2) + recs.length;
-    return {username: u.username, name: u.name, score, hadir, telat};
-  });
+function submitCheckOut() {
+    const result = attendanceSystem.addAttendance(currentUser.id);
+    
+    if (result && result.action === 'checkout') {
+        showToast('Absen keluar berhasil!', 'success');
+        closeModal();
+        loadDashboardData();
+        loadRecentHistory();
+    } else {
+        showToast('Gagal melakukan absen keluar', 'error');
+    }
+}
 
-  scores.sort((a,b)=> b.score - a.score);
-  const top5 = scores.slice(0,5);
-  const ol = document.getElementById('rankingArea');
-  ol.innerHTML = '';
-  top5.forEach(s => {
-    const li = document.createElement('li');
-    li.innerText = `${s.name} — Hadir:${s.hadir} Terlambat:${s.telat}`;
-    ol.appendChild(li);
-  });
+function loadRecentHistory() {
+    const history = attendanceSystem.getAttendanceHistory(currentUser.id, 5);
+    const tbody = document.querySelector('#recentHistory tbody');
+    
+    tbody.innerHTML = '';
+    
+    history.forEach(record => {
+        const statusClass = record.status === 'hadir' ? 
+            (record.lateMinutes > 0 ? 'status-late' : 'status-present') :
+            record.status === 'sakit' ? 'status-sick' :
+            record.status === 'izin' || record.status === 'cuti' ? 'status-permit' :
+            'status-alfa';
+        
+        const statusText = record.status === 'hadir' && record.lateMinutes > 0 ? 'Terlambat' : 
+                          record.status.charAt(0).toUpperCase() + record.status.slice(1);
+        
+        const row = `
+            <tr>
+                <td>${formatDate(new Date(record.date))}</td>
+                <td>${record.checkIn || '-'}</td>
+                <td>${record.checkOut || '-'}</td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td>${record.lateMinutes > 0 ? record.lateMinutes + ' menit' : '-'}</td>
+                <td>${record.notes || '-'}</td>
+            </tr>
+        `;
+        
+        tbody.innerHTML += row;
+    });
+}
+
+function loadMonthlyStats() {
+    const stats = attendanceSystem.getMonthlyStats(currentUser.id);
+    
+    // Create simple bar chart dengan HTML
+    const chartContainer = document.getElementById('monthlyStatsChart');
+    if (chartContainer) {
+        chartContainer.innerHTML = `
+            <div style="display: flex; align-items: flex-end; height: 200px; gap: 20px; margin: 20px 0;">
+                <div style="text-align: center; flex: 1;">
+                    <div style="height: ${(stats.present/stats.totalDays)*100}%; background: #27ae60; border-radius: 5px;"></div>
+                    <div style="margin-top: 10px;">Hadir: ${stats.present}</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                    <div style="height: ${(stats.late/stats.totalDays)*100}%; background: #f39c12; border-radius: 5px;"></div>
+                    <div style="margin-top: 10px;">Terlambat: ${stats.late}</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                    <div style="height: ${((stats.sick + stats.permit)/stats.totalDays)*100}%; background: #3498db; border-radius: 5px;"></div>
+                    <div style="margin-top: 10px;">Izin/Sakit: ${stats.sick + stats.permit}</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                    <div style="height: ${(stats.alfa/stats.totalDays)*100}%; background: #e74c3c; border-radius: 5px;"></div>
+                    <div style="margin-top: 10px;">Alfa: ${stats.alfa}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Update stats details
+    const statsDetails = document.getElementById('statsDetails');
+    if (statsDetails) {
+        statsDetails.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon present">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Persentase Kehadiran</h3>
+                        <div class="number">${stats.attendanceRate}%</div>
+                        <p>${stats.present + stats.sick + stats.permit} dari ${stats.totalDays} hari</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon late">
+                        <i class="fas fa-running"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Rata-rata Terlambat</h3>
+                        <div class="number">${stats.late > 0 ? '5 menit' : '0'}</div>
+                        <p>Total ${stats.late} kali terlambat</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon permit">
+                        <i class="fas fa-calendar-minus"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Hari Kerja Tersisa</h3>
+                        <div class="number">${stats.totalDays - (stats.present + stats.sick + stats.permit)}</div>
+                        <p>Masih bisa meningkatkan kehadiran</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function loadAttendanceHistory() {
+    // Implementasi filter bulan untuk riwayat lengkap
+    const monthFilter = document.getElementById('monthFilter').value;
+    // ... implementasi filter
+}
+
+function loadTopPerformers() {
+    const topPerformers = attendanceSystem.getTopPerformers();
+    const tbody = document.querySelector('#topPerformers tbody');
+    
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    topPerformers.forEach((performer, index) => {
+        const isCurrentUser = performer.employeeId === currentUser.id;
+        const rowClass = isCurrentUser ? 'style="background-color: #e3f2fd;"' : '';
+        
+        const row = `
+            <tr ${rowClass}>
+                <td>
+                    ${index === 0 ? '<i class="fas fa-trophy" style="color: gold;"></i>' : 
+                      index === 1 ? '<i class="fas fa-trophy" style="color: silver;"></i>' :
+                      index === 2 ? '<i class="fas fa-trophy" style="color: #cd7f32;"></i>' :
+                      index + 1}
+                </td>
+                <td>
+                    ${performer.name}
+                    ${isCurrentUser ? '<span class="badge" style="background: #3498db; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 5px;">Anda</span>' : ''}
+                </td>
+                <td>${performer.present}</td>
+                <td>${performer.lateCount}</td>
+                <td>${performer.sick + performer.permit}</td>
+                <td><strong>${performer.score}</strong></td>
+            </tr>
+        `;
+        
+        tbody.innerHTML += row;
+    });
+}
+
+function setupNavigation() {
+    const navLinks = document.querySelectorAll('.sidebar-menu a');
+    const contents = ['dashboardContent', 'historyContent', 'statisticsContent', 'rankingContent'];
+    
+    navLinks.forEach((link, index) => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Update active class
+            navLinks.forEach(l => l.parentElement.classList.remove('active'));
+            link.parentElement.classList.add('active');
+            
+            // Show selected content
+            contents.forEach((contentId, i) => {
+                const element = document.getElementById(contentId);
+                if (element) {
+                    element.style.display = i === index ? 'block' : 'none';
+                }
+            });
+            
+            // Load data jika diperlukan
+            if (index === 1) { // History
+                loadFullHistory();
+            } else if (index === 2) { // Statistics
+                loadMonthlyStats();
+            } else if (index === 3) { // Ranking
+                loadTopPerformers();
+            }
+        });
+    });
+}
+
+function loadFullHistory() {
+    const attendances = JSON.parse(localStorage.getItem('attendances'));
+    const employeeAttendances = attendances
+        .filter(a => a.employeeId === currentUser.id)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    const tbody = document.querySelector('#fullHistory tbody');
+    tbody.innerHTML = '';
+    
+    employeeAttendances.forEach(record => {
+        const statusClass = record.status === 'hadir' ? 
+            (record.lateMinutes > 0 ? 'status-late' : 'status-present') :
+            record.status === 'sakit' ? 'status-sick' :
+            record.status === 'izin' || record.status === 'cuti' ? 'status-permit' :
+            'status-alfa';
+        
+        const statusText = record.status === 'hadir' && record.lateMinutes > 0 ? 'Terlambat' : 
+                          record.status.charAt(0).toUpperCase() + record.status.slice(1);
+        
+        const row = `
+            <tr>
+                <td>${formatDate(new Date(record.date))}</td>
+                <td>${record.checkIn || '-'}</td>
+                <td>${record.checkOut || '-'}</td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td>${record.lateMinutes > 0 ? record.lateMinutes + ' menit' : '-'}</td>
+                <td>${record.notes || '-'}</td>
+            </tr>
+        `;
+        
+        tbody.innerHTML += row;
+    });
+}
+
+function checkDayOff() {
+    if (attendanceSystem.isDayOff()) {
+        showToast('Hari ini adalah hari libur. Tidak ada absensi.', 'info');
+    }
+}
+
+// Fungsi helper untuk format tanggal
+function formatDate(date) {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('id-ID', options);
+}
+
+function formatTime(date) {
+    return date.toTimeString().split(' ')[0].substring(0, 5);
 }
