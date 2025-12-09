@@ -1,94 +1,190 @@
 // auth.js
-// Simple client-side auth for demo. Uses localStorage to persist initial users.
-
-const USERS_KEY = 'absensi_users_v1';
-
-// initial 18 users including Admin Sutrisno (sutris)
-const initialUsers = [
-  {name:"Sutrisno", username:"sutris", password:"sutris123", role:"admin"},
-  {name:"Nita Sri Wahyuningrum, S.Pd", username:"nita", password:"nita123", role:"employee"},
-  {name:"Heri Kurniawan", username:"heri", password:"heri123", role:"employee"},
-  {name:"Yian Hidayatul Ulfa, S. Pd.", username:"yian", password:"yian123", role:"employee"},
-  {name:"Diah Aprilia Devi, S.Pd", username:"diah", password:"diah123", role:"employee"},
-  {name:"Teguh Setia Isma Ramadan", username:"teguh", password:"teguh123", role:"employee"},
-  {name:"Iskandar Kholif, S.Pd", username:"iskandar", password:"iskandar123", role:"employee"},
-  {name:"Dinul Qoyyimah, S. Pd", username:"dinul", password:"dinul123", role:"employee"},
-  {name:"Endah Windarti, S.Pd", username:"endah", password:"endah123", role:"employee"},
-  {name:"Citra Wulan Sari, S. Pd", username:"citra", password:"citra123", role:"employee"},
-  {name:"Fajriansyah Abdillah", username:"fajri", password:"fajri123", role:"employee"},
-  {name:"Muh. Abdul Hamid, S.H.I", username:"hamid", password:"hamid123", role:"employee"},
-  {name:"Nurjayati, S.Pd", username:"nurjayati", password:"jayati123", role:"employee"},
-  {name:"Riswan Siregar, M.Pd", username:"riswan", password:"riswan123", role:"employee"},
-  {name:"Rizka Ulfiana, S. Tp", username:"rizka", password:"rizka123", role:"employee"},
-  {name:"Susi Dwi Ratna Sari, S.Pd", username:"susi", password:"susi123", role:"employee"},
-  {name:"Usamah Hanif", username:"usamah", password:"usamah123", role:"employee"},
-  {name:"Zainap Assaihatus Syahidah S. Si", username:"zainap", password:"zainap123", role:"employee"}
-];
-
-function ensureUsers() {
-  if (!localStorage.getItem(USERS_KEY)) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
-  }
-}
-
-function getUsers() {
-  ensureUsers();
-  return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-}
-
-function findUser(username) {
-  return getUsers().find(u => u.username === username);
-}
-
-function resetPassword(username, newPassword) {
-  const users = getUsers();
-  const u = users.find(x => x.username === username);
-  if (!u) return false;
-  u.password = newPassword;
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  return true;
-}
-
-function addUser(user) {
-  const users = getUsers();
-  users.push(user);
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-function updateUser(username, payload) {
-  const users = getUsers();
-  const idx = users.findIndex(u => u.username === username);
-  if (idx === -1) return false;
-  users[idx] = {...users[idx], ...payload};
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  return true;
-}
-
-// login handling on index.html
-document.addEventListener('DOMContentLoaded', () => {
-  ensureUsers();
-  const loginForm = document.getElementById('loginForm');
-  loginForm.addEventListener('submit', e => {
-    e.preventDefault();
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    const user = findUser(username);
-    if (!user || user.password !== password) {
-      showAlert('Username atau password salah','danger');
-      return;
+class Auth {
+    constructor() {
+        this.initData();
     }
-    // store session
-    sessionStorage.setItem('absensi_session', JSON.stringify({username:user.username, role: user.role}));
-    // redirect
-    if (user.role === 'admin') {
-      window.location.href = 'admin.html';
-    } else {
-      window.location.href = 'employee.html';
+
+    // Inisialisasi data default
+    initData() {
+        if (!localStorage.getItem('employees')) {
+            const defaultEmployees = [
+                { id: 1, name: 'Sutrisno', username: 'sutris', password: 'password123', role: 'admin' },
+                { id: 2, name: 'Nita Sri Wahyuningrum, S.Pd', username: 'nita', password: 'password123', role: 'employee' },
+                { id: 3, name: 'Heri Kurniawan', username: 'heri', password: 'password123', role: 'employee' },
+                { id: 4, name: 'Yian Hidayatul Ulfa, S. Pd.', username: 'yian', password: 'password123', role: 'employee' },
+                { id: 5, name: 'Diah Aprilia Devi, S.Pd', username: 'diah', password: 'password123', role: 'employee' },
+                { id: 6, name: 'Teguh Setia Isma Ramadan', username: 'teguh', password: 'password123', role: 'employee' },
+                { id: 7, name: 'Iskandar Kholif, S.Pd', username: 'iskandar', password: 'password123', role: 'employee' },
+                { id: 8, name: 'Dinul Qoyyimah, S. Pd', username: 'dinul', password: 'password123', role: 'employee' },
+                { id: 9, name: 'Endah Windarti, S.Pd', username: 'endah', password: 'password123', role: 'employee' },
+                { id: 10, name: 'Citra Wulan Sari, S. Pd', username: 'citra', password: 'password123', role: 'employee' },
+                { id: 11, name: 'Fajriansyah Abdillah', username: 'fajri', password: 'password123', role: 'employee' },
+                { id: 12, name: 'Muh. Abdul Hamid, S.H.I', username: 'hamid', password: 'password123', role: 'employee' },
+                { id: 13, name: 'Nurjayati, S.Pd', username: 'nurjayati', password: 'password123', role: 'employee' },
+                { id: 14, name: 'Riswan Siregar, M.Pd', username: 'riswan', password: 'password123', role: 'employee' },
+                { id: 15, name: 'Rizka Ulfiana, S. Tp', username: 'rizka', password: 'password123', role: 'employee' },
+                { id: 16, name: 'Susi Dwi Ratna Sari, S.Pd', username: 'susi', password: 'password123', role: 'employee' },
+                { id: 17, name: 'Usamah Hanif', username: 'usamah', password: 'password123', role: 'employee' },
+                { id: 18, name: 'Zainap Assaihatus Syahidah S. Si', username: 'zainap', password: 'password123', role: 'employee' }
+            ];
+            localStorage.setItem('employees', JSON.stringify(defaultEmployees));
+        }
+
+        if (!localStorage.getItem('attendances')) {
+            localStorage.setItem('attendances', JSON.stringify([]));
+        }
+
+        if (!localStorage.getItem('holidays')) {
+            localStorage.setItem('holidays', JSON.stringify([]));
+        }
+
+        if (!localStorage.getItem('corrections')) {
+            localStorage.setItem('corrections', JSON.stringify([]));
+        }
     }
-  });
+
+    // Login function
+    login(username, password) {
+        const employees = JSON.parse(localStorage.getItem('employees'));
+        const user = employees.find(emp => emp.username === username && emp.password === password);
+        
+        if (user) {
+            // Simpan user yang login
+            const userData = {
+                id: user.id,
+                name: user.name,
+                username: user.username,
+                role: user.role,
+                loginTime: new Date().toISOString()
+            };
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            return userData;
+        }
+        return null;
+    }
+
+    // Logout function
+    logout() {
+        localStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
+    }
+
+    // Get current user
+    getCurrentUser() {
+        return JSON.parse(localStorage.getItem('currentUser'));
+    }
+
+    // Check if user is logged in
+    isLoggedIn() {
+        return localStorage.getItem('currentUser') !== null;
+    }
+
+    // Redirect if not logged in
+    requireAuth() {
+        if (!this.isLoggedIn()) {
+            window.location.href = 'index.html';
+        }
+    }
+
+    // Add new employee (admin only)
+    addEmployee(name, username, password) {
+        const employees = JSON.parse(localStorage.getItem('employees'));
+        const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
+        
+        const newEmployee = {
+            id: newId,
+            name,
+            username,
+            password,
+            role: 'employee'
+        };
+        
+        employees.push(newEmployee);
+        localStorage.setItem('employees', JSON.stringify(employees));
+        return newEmployee;
+    }
+
+    // Reset password (admin only)
+    resetPassword(employeeId, newPassword = 'password123') {
+        const employees = JSON.parse(localStorage.getItem('employees'));
+        const index = employees.findIndex(e => e.id === employeeId);
+        
+        if (index !== -1) {
+            employees[index].password = newPassword;
+            localStorage.setItem('employees', JSON.stringify(employees));
+            return true;
+        }
+        return false;
+    }
+
+    // Get all employees
+    getAllEmployees() {
+        return JSON.parse(localStorage.getItem('employees'));
+    }
+}
+
+// Initialize auth when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const auth = new Auth();
+    
+    // Handle login form submission
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const user = auth.login(username, password);
+            
+            if (user) {
+                showToast('Login berhasil!', 'success');
+                
+                // Redirect berdasarkan role
+                setTimeout(() => {
+                    if (user.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'employee.html';
+                    }
+                }, 1000);
+            } else {
+                showToast('Username atau password salah!', 'error');
+            }
+        });
+    }
 });
 
-function showAlert(message, type='info') {
-  const p = `<div class="alert alert-${type} alert-sm" role="alert">${message}</div>`;
-  document.getElementById('alert-placeholder').innerHTML = p;
+// Utility function untuk toast notification
+function showToast(message, type = 'info') {
+    // Hapus toast sebelumnya
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) existingToast.remove();
+    
+    // Buat toast baru
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        ${message}
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Hapus toast setelah 3 detik
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// Function untuk format tanggal
+function formatDate(date = new Date()) {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('id-ID', options);
+}
+
+// Function untuk format waktu
+function formatTime(date = new Date()) {
+    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
