@@ -1,372 +1,755 @@
 // admin.js
-const SESSION_KEY = 'absensi_session';
-const RECORDS_KEY = 'absensi_records_v1';
-const HOLIDAYS_KEY = 'absensi_holidays_v1';
-const LOGS_KEY = 'absensi_logs_v1';
-const USERS_KEY = 'absensi_users_v1';
+const auth = new Auth();
+let currentAdmin = null;
 
-function getSession() {
-  const s = sessionStorage.getItem(SESSION_KEY);
-  if (!s) { location.href = 'index.html'; return null; }
-  return JSON.parse(s);
-}
-function getRecords() { return JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]'); }
-function saveRecords(r) { localStorage.setItem(RECORDS_KEY, JSON.stringify(r)); }
-function getUsers() { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
-function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
-function getHolidays(){ return JSON.parse(localStorage.getItem(HOLIDAYS_KEY) || '[]'); }
-function saveHolidays(h){ localStorage.setItem(HOLIDAYS_KEY, JSON.stringify(h)); }
-function addLog(entry){ const logs = JSON.parse(localStorage.getItem(LOGS_KEY) || '[]'); logs.push({...entry, timestamp: new Date().toISOString()}); localStorage.setItem(LOGS_KEY, JSON.stringify(logs)); }
-
-document.addEventListener('DOMContentLoaded', () => {
-  const session = getSession();
-  if (!session) return;
-  const users = getUsers();
-  const me = users.find(u => u.username === session.username);
-  document.getElementById('adminGreeting').innerText = me ? me.name : session.username;
-
-  document.getElementById('logoutAdmin').addEventListener('click', () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    location.href = 'index.html';
-  });
-
-  // init date filter to today
-  document.getElementById('filterDate').value = new Date().toISOString().slice(0,10);
-  document.getElementById('filterDate').addEventListener('change', renderAttendanceTable);
-  document.getElementById('filterName').addEventListener('input', renderAttendanceTable);
-  document.getElementById('btnExportExcel').addEventListener('click', exportExcel);
-  document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
-
-  // user mgmt
-  document.getElementById('btnAddUser').addEventListener('click', handleAddUser);
-  renderUserList();
-
-  // holidays
-  document.getElementById('addHoliday').addEventListener('click', () => {
-    const d = document.getElementById('holidayDate').value;
-    if (!d) return showAlert('Pilih tanggal','warning');
-    const holidays = getHolidays();
-    if (!holidays.includes(d)) {
-      holidays.push(d);
-      saveHolidays(holidays);
-      addLog({action:'addHoliday', by: session.username, date: d});
-      showAlert('Libur ditambahkan','success');
-      renderHolidayList();
-      renderAttendanceTable();
-    } else showAlert('Tanggal sudah terdaftar','info');
-  });
-  renderHolidayList();
-
-  renderAttendanceTable();
-  renderSummary();
-  renderChart();
+// Cek login sebagai admin
+document.addEventListener('DOMContentLoaded', function() {
+    auth.requireAuth();
+    currentAdmin = auth.getCurrentUser();
+    
+    if (!currentAdmin || currentAdmin.role !== 'admin') {
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    initializeAdminDashboard();
 });
 
-// user list & reset password
-function renderUserList(){
-  const users = getUsers();
-  const container = document.getElementById('userList');
-  container.innerHTML = '';
-  users.forEach(u => {
-    const div = document.createElement('div');
-    div.className = 'd-flex align-items-center mb-1';
-    div.innerHTML = `<div class="flex-grow-1 small">${u.name} <span class="text-muted">(${u.username})</span></div>
-      <button class="btn btn-sm btn-outline-secondary me-1" data-username="${u.username}" onclick="resetPwd(event)">Reset Pw</button>
-      <button class="btn btn-sm btn-outline-danger" data-username="${u.username}" onclick="deleteUser(event)">Hapus</button>`;
-    container.appendChild(div);
-  });
+function initializeAdminDashboard() {
+    // Update UI dengan data admin
+    document.getElementById('adminName').textContent = currentAdmin.name;
+    
+    // Update waktu real-time
+    updateAdminDateTime();
+    setInterval(updateAdminDateTime, 1000);
+    
+    // Load data dashboard
+    loadAdminOverview();
+    loadTodaySummary();
+    loadEmployeesTable();
+    loadHolidaysTable();
+    
+    // Setup navigation
+    setupAdminNavigation();
+    
+    // Populate dropdowns
+    populateEmployeeDropdowns();
 }
 
-function handleAddUser(){
-  const name = prompt('Nama karyawan (Lengkap)');
-  if (!name) return;
-  const username = prompt('Username (unik)');
-  if (!username) return;
-  const pwd = prompt('Password default');
-  if (!pwd) return;
-  const users = getUsers();
-  if (users.find(u=>u.username===username)) return alert('Username sudah ada');
-  users.push({name, username, password: pwd, role:'employee'});
-  saveUsers(users);
-  addLog({action:'addUser', by: getSession().username, username});
-  renderUserList();
-  showAlert('Karyawan ditambahkan','success');
+function updateAdminDateTime() {
+    const now = new Date();
+    document.getElementById('adminDate').textContent = formatDate(now);
+    document.getElementById('adminTime').textContent = formatTime(now);
 }
 
-function resetPwd(ev){
-  const username = ev.target.getAttribute('data-username');
-  const newPw = prompt('Masukkan password baru untuk ' + username);
-  if (!newPw) return;
-  const users = getUsers();
-  const u = users.find(x=>x.username===username);
-  u.password = newPw;
-  saveUsers(users);
-  addLog({action:'resetPwd', by: getSession().username, username});
-  showAlert('Password direset','success');
+function loadAdminOverview() {
+    const employees = auth.getAllEmployees().filter(e => e.role === 'employee');
+    const todayAttendances = attendanceSystem.getTodayAllAttendances();
+    
+    // Update stat cards
+    document.getElementById('totalEmployees').textContent = employees.length;
+    document.getElementById('todayPresent').textContent = todayAttendances.length;
+    document.getElementById('todayAbsent').textContent = `${employees.length - todayAttendances.length} belum absen`;
+    
+    const lateCount = todayAttendances.filter(a => a.lateMinutes > 0).length;
+    document.getElementById('todayLate').textContent = lateCount;
+    document.getElementById('latePercentage').textContent = todayAttendances.length > 0 ? 
+        `${Math.round((lateCount / todayAttendances.length) * 100)}% dari yang hadir` : '0%';
+    
+    const leaveCount = todayAttendances.filter(a => a.status === 'izin' || a.status === 'sakit' || a.status === 'cuti').length;
+    document.getElementById('todayLeave').textContent = leaveCount;
+    
+    // Load alerts
+    loadAlerts();
 }
 
-function deleteUser(ev){
-  const username = ev.target.getAttribute('data-username');
-  if (!confirm('Hapus user '+username+'?')) return;
-  let users = getUsers();
-  users = users.filter(u=>u.username!==username);
-  saveUsers(users);
-  addLog({action:'deleteUser', by: getSession().username, username});
-  renderUserList();
-  showAlert('User dihapus','success');
+function loadAlerts() {
+    const alertsContainer = document.getElementById('alertsContainer');
+    const employees = auth.getAllEmployees().filter(e => e.role === 'employee');
+    const todayAttendances = attendanceSystem.getTodayAllAttendances();
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    let alertsHTML = '';
+    
+    // Alert 1: Karyawan yang belum absen setelah jam 8
+    if (currentHour >= 8) {
+        const absentEmployees = employees.filter(emp => {
+            const hasAttendance = todayAttendances.some(a => a.employeeId === emp.id);
+            return !hasAttendance;
+        });
+        
+        if (absentEmployees.length > 0) {
+            alertsHTML += `
+                <div class="alert" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 10px;">
+                    <i class="fas fa-exclamation-circle"></i> <strong>${absentEmployees.length} karyawan belum absen masuk</strong>
+                    <p style="margin: 5px 0 0 0; font-size: 14px;">
+                        ${absentEmployees.slice(0, 3).map(e => e.name.split(' ')[0]).join(', ')}${absentEmployees.length > 3 ? ` dan ${absentEmployees.length - 3} lainnya` : ''}
+                    </p>
+                </div>
+            `;
+        }
+    }
+    
+    // Alert 2: Karyawan dengan status alfa dalam 7 hari terakhir
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const dateStr7DaysAgo = sevenDaysAgo.toISOString().split('T')[0];
+    
+    const attendances = JSON.parse(localStorage.getItem('attendances'));
+    const alfaEmployees = new Set();
+    
+    employees.forEach(emp => {
+        const recentAttendances = attendances.filter(a => 
+            a.employeeId === emp.id && 
+            a.date >= dateStr7DaysAgo
+        );
+        
+        // Hitung hari kerja dalam 7 hari terakhir (exclude Sundays)
+        let workingDays = 0;
+        for (let i = 0; i < 7; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            if (date.getDay() !== 0) { // Bukan Minggu
+                workingDays++;
+            }
+        }
+        
+        if (recentAttendances.length < workingDays * 0.5) { // Kurang dari 50% kehadiran
+            alfaEmployees.add(emp.name);
+        }
+    });
+    
+    if (alfaEmployees.size > 0) {
+        const alfaList = Array.from(alfaEmployees);
+        alertsHTML += `
+            <div class="alert" style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin-bottom: 10px;">
+                <i class="fas fa-user-times"></i> <strong>${alfaEmployees.size} karyawan perlu perhatian (alfa ≥ 3 hari)</strong>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">
+                    ${alfaList.slice(0, 3).join(', ')}${alfaList.length > 3 ? ` dan ${alfaList.length - 3} lainnya` : ''}
+                </p>
+            </div>
+        `;
+    }
+    
+    // Alert 3: Peringkat teladan
+    const topPerformers = attendanceSystem.getTopPerformers(3);
+    if (topPerformers.length > 0) {
+        alertsHTML += `
+            <div class="alert" style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px;">
+                <i class="fas fa-trophy"></i> <strong>Top 3 Karyawan Teladan Bulan Ini</strong>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">
+                    ${topPerformers.map((p, i) => `${i+1}. ${p.name} (Score: ${p.score})`).join(', ')}
+                </p>
+            </div>
+        `;
+    }
+    
+    alertsContainer.innerHTML = alertsHTML || '<p>Tidak ada notifikasi saat ini.</p>';
 }
 
-// holiday list
-function renderHolidayList(){
-  const list = getHolidays();
-  const ul = document.getElementById('holidayList');
-  ul.innerHTML = '';
-  list.forEach(d => {
-    const li = document.createElement('li');
-    li.innerHTML = `${d} <button class="btn btn-sm btn-link p-0" onclick="removeHoliday('${d}')">hapus</button>`;
-    ul.appendChild(li);
-  });
-}
-function removeHoliday(d){
-  if (!confirm('Hapus libur '+d+'?')) return;
-  let list = getHolidays();
-  list = list.filter(x=>x!==d);
-  saveHolidays(list);
-  addLog({action:'removeHoliday', by: getSession().username, date: d});
-  renderHolidayList();
-  renderAttendanceTable();
-  showAlert('Libur dihapus','success');
-}
-
-// attendance table
-function renderAttendanceTable(){
-  const date = document.getElementById('filterDate').value;
-  const q = document.getElementById('filterName').value.toLowerCase();
-  const users = getUsers();
-  const records = getRecords();
-  const rows = users.map(u => {
-    const rec = records.find(r=> r.username===u.username && r.date===date);
-    return {username:u.username, name:u.name, rec};
-  }).filter(r=> r.name.toLowerCase().includes(q) || r.username.includes(q));
-
-  let html = `<table class="table table-sm"><thead><tr><th>Nama</th><th>Masuk</th><th>Keluar</th><th>Status</th><th>Telat</th><th>Aksi</th></tr></thead><tbody>`;
-  rows.forEach(r => {
-    const rec = r.rec;
-    html += `<tr>
-      <td>${r.name} <div class="text-muted small">${r.username}</div></td>
-      <td>${rec ? (rec.checkinDisplay || '-') : '-'}</td>
-      <td>${rec ? (rec.checkoutDisplay || '-') : '-'}</td>
-      <td>${rec ? rec.status : '-'}</td>
-      <td>${rec ? (rec.lateMinutes? rec.lateMinutes+' m':'-') : '-'}</td>
-      <td>
-        <button class="btn btn-sm btn-outline-primary" onclick="openEdit('${r.username}','${date}')">Koreksi</button>
-        <button class="btn btn-sm btn-outline-danger" onclick="markAlfa('${r.username}','${date}')">Set Alfa</button>
-      </td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  document.getElementById('attendanceTable').innerHTML = html;
-  renderSummary();
-  renderChart();
+function loadTodaySummary() {
+    const todayAttendances = attendanceSystem.getTodayAllAttendances();
+    const employees = auth.getAllEmployees().filter(e => e.role === 'employee');
+    
+    const tbody = document.querySelector('#todaySummary tbody');
+    tbody.innerHTML = '';
+    
+    // Gabungkan semua karyawan dengan absensi hari ini
+    employees.forEach(employee => {
+        const attendance = todayAttendances.find(a => a.employeeId === employee.id);
+        
+        const status = attendance ? 
+            (attendance.status === 'hadir' && attendance.lateMinutes > 0 ? 'terlambat' : attendance.status) :
+            'alfa';
+        
+        const statusClass = status === 'hadir' ? 'status-present' :
+                           status === 'terlambat' ? 'status-late' :
+                           status === 'sakit' ? 'status-sick' :
+                           status === 'izin' || status === 'cuti' ? 'status-permit' :
+                           'status-alfa';
+        
+        const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+        
+        const row = `
+            <tr>
+                <td>${employee.name}</td>
+                <td>${attendance?.checkIn || '-'}</td>
+                <td>${attendance?.checkOut || '-'}</td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td>${attendance?.lateMinutes > 0 ? attendance.lateMinutes + ' menit' : '-'}</td>
+                <td>${attendance?.notes || '-'}</td>
+                <td>
+                    ${attendance ? `
+                        <button onclick="openCorrectionModal(${attendance.id})" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    ` : `
+                        <button onclick="addManualAttendance(${employee.id})" class="btn btn-info btn-sm">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    `}
+                </td>
+            </tr>
+        `;
+        
+        tbody.innerHTML += row;
+    });
 }
 
-function openEdit(username, date) {
-  const rec = getRecords().find(r=> r.username===username && r.date===date) || null;
-  document.getElementById('editUsername').value = username;
-  document.getElementById('editDate').value = date;
-  document.getElementById('editCheckin').value = rec && rec.checkinTime ? rec.checkinTime.slice(11,16) : '';
-  document.getElementById('editCheckout').value = rec && rec.checkoutTime ? rec.checkoutTime.slice(11,16) : '';
-  document.getElementById('editStatus').value = rec ? rec.status : 'Hadir';
-  document.getElementById('editNote').value = rec ? (rec.note||'') : '';
-  const modal = new bootstrap.Modal(document.getElementById('editModal'));
-  modal.show();
-
-  document.getElementById('editForm').onsubmit = function(e) {
-    e.preventDefault();
-    saveEdit();
-    modal.hide();
-  };
+function openCorrectionModal(attendanceId) {
+    const attendances = JSON.parse(localStorage.getItem('attendances'));
+    const attendance = attendances.find(a => a.id === attendanceId);
+    
+    if (!attendance) return;
+    
+    const employees = auth.getAllEmployees();
+    const employee = employees.find(e => e.id === attendance.employeeId);
+    
+    // Isi form modal
+    document.getElementById('correctionAttendanceId').value = attendanceId;
+    document.getElementById('correctionEmployeeName').value = employee?.name || 'Unknown';
+    document.getElementById('correctionDate').value = attendance.date;
+    document.getElementById('correctionCheckIn').value = attendance.checkIn || '';
+    document.getElementById('correctionCheckOut').value = attendance.checkOut || '';
+    document.getElementById('correctionStatus').value = attendance.status;
+    document.getElementById('correctionNotes').value = attendance.notes || '';
+    
+    // Tampilkan modal
+    document.getElementById('correctionModal').classList.add('active');
 }
 
-function saveEdit(){
-  const username = document.getElementById('editUsername').value;
-  const date = document.getElementById('editDate').value;
-  const checkin = document.getElementById('editCheckin').value;
-  const checkout = document.getElementById('editCheckout').value;
-  const status = document.getElementById('editStatus').value;
-  const note = document.getElementById('editNote').value;
-
-  const records = getRecords();
-  let rec = records.find(r=> r.username===username && r.date===date);
-  const before = JSON.stringify(rec || {});
-  if (!rec) {
-    // create record
-    rec = {
-      username, name: getUsers().find(u=>u.username===username).name, date,
-      checkinTime: checkin ? new Date(date+'T'+checkin+':00').toISOString() : null,
-      checkinDisplay: checkin || null,
-      checkoutTime: checkout ? new Date(date+'T'+checkout+':00').toISOString() : null,
-      checkoutDisplay: checkout || null,
-      status, note, lateMinutes:0, editedBy: getSession().username, editedAt: new Date().toISOString()
+function saveCorrection() {
+    const attendanceId = parseInt(document.getElementById('correctionAttendanceId').value);
+    const checkIn = document.getElementById('correctionCheckIn').value;
+    const checkOut = document.getElementById('correctionCheckOut').value;
+    const status = document.getElementById('correctionStatus').value;
+    const notes = document.getElementById('correctionNotes').value;
+    
+    const updates = {
+        checkIn: checkIn || null,
+        checkOut: checkOut || null,
+        status,
+        notes
     };
-    records.push(rec);
-  } else {
-    if (checkin) { rec.checkinTime = new Date(date+'T'+checkin+':00').toISOString(); rec.checkinDisplay = checkin; } else { rec.checkinTime = null; rec.checkinDisplay = null; }
-    if (checkout) { rec.checkoutTime = new Date(date+'T'+checkout+':00').toISOString(); rec.checkoutDisplay = checkout; } else { rec.checkoutTime = null; rec.checkoutDisplay = null; }
-    rec.status = status; rec.note = note;
-    // recompute late if hadir
-    if (rec.checkinTime && status === 'Hadir') {
-      const m = minutesLate(new Date(rec.checkinTime));
-      rec.lateMinutes = m;
-    } else rec.lateMinutes = 0;
-    rec.editedBy = getSession().username; rec.editedAt = new Date().toISOString();
-  }
-  saveRecords(records);
-  addLog({action:'editRecord', by: getSession().username, username, date, before, after: JSON.stringify(rec)});
-  showAlert('Perubahan tersimpan','success');
-  renderAttendanceTable();
+    
+    const success = attendanceSystem.correctAttendance(
+        attendanceId, 
+        updates, 
+        currentAdmin.id
+    );
+    
+    if (success) {
+        showToast('Koreksi absensi berhasil disimpan', 'success');
+        closeAdminModal();
+        loadAdminOverview();
+        loadTodaySummary();
+    } else {
+        showToast('Gagal menyimpan koreksi', 'error');
+    }
 }
 
-function markAlfa(username, date) {
-  if (!confirm('Set status Alfa untuk '+username+' pada '+date+'?')) return;
-  const records = getRecords();
-  let rec = records.find(r=> r.username===username && r.date===date);
-  if (!rec) {
-    rec = { username, name: getUsers().find(u=>u.username===username).name, date, checkinTime:null, checkinDisplay:null, checkoutTime:null, checkoutDisplay:null, status:'Alfa', note:'Ditandai Admin', lateMinutes:0, editedAt:new Date().toISOString(), editedBy:getSession().username };
-    records.push(rec);
-  } else {
-    rec.status = 'Alfa'; rec.note = 'Ditandai Admin'; rec.editedBy = getSession().username; rec.editedAt = new Date().toISOString();
-  }
-  saveRecords(records);
-  addLog({action:'setAlfa', by: getSession().username, username, date});
-  showAlert('Di-set Alfa','success');
-  renderAttendanceTable();
+function addManualAttendance(employeeId) {
+    // Buat absensi manual untuk hari ini
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].substring(0, 5);
+    
+    const attendances = JSON.parse(localStorage.getItem('attendances'));
+    
+    // Cek apakah sudah ada
+    const existing = attendances.find(a => 
+        a.employeeId === employeeId && a.date === dateStr
+    );
+    
+    if (existing) {
+        openCorrectionModal(existing.id);
+        return;
+    }
+    
+    // Buat baru
+    const newAttendance = {
+        id: attendances.length + 1,
+        employeeId,
+        date: dateStr,
+        checkIn: timeStr,
+        checkOut: null,
+        status: 'hadir',
+        notes: 'Ditambahkan manual oleh admin',
+        lateMinutes: attendanceSystem.calculateLateMinutes(timeStr),
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString()
+    };
+    
+    attendances.push(newAttendance);
+    localStorage.setItem('attendances', JSON.stringify(attendances));
+    
+    showToast('Absensi manual berhasil ditambahkan', 'success');
+    loadTodaySummary();
 }
 
-// summary
-function renderSummary(){
-  const users = getUsers();
-  const records = getRecords();
-  const date = document.getElementById('filterDate') ? document.getElementById('filterDate').value : new Date().toISOString().slice(0,10);
-  const total = users.length;
-  const hadir = records.filter(r=> r.date===date && r.status==='Hadir').length;
-  const izin = records.filter(r=> r.date===date && r.status==='Izin').length;
-  const sakit = records.filter(r=> r.date===date && r.status==='Sakit').length;
-  const alfa = records.filter(r=> r.date===date && r.status==='Alfa').length;
-  const container = document.getElementById('summaryArea');
-  container.innerHTML = `<div class="small">Total Karyawan: <b>${total}</b></div>
-    <div class="small">Sudah absen: <b>${hadir}</b></div>
-    <div class="small">Izin: <b>${izin}</b> Sakit: <b>${sakit}</b> Alfa: <b>${alfa}</b>`;
-  // alerts area
-  const alerts = document.getElementById('alertsArea');
-  const notYet = users.length - (hadir + izin + sakit + alfa);
-  alerts.innerHTML = `<div class="small text-danger">Belum absen hari ini: <b>${notYet}</b></div>`;
+function loadEmployeesTable() {
+    const employees = auth.getAllEmployees();
+    const tbody = document.querySelector('#employeesTable tbody');
+    
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    employees.forEach(employee => {
+        // Hitung statistik karyawan
+        const attendances = JSON.parse(localStorage.getItem('attendances'));
+        const employeeAttendances = attendances.filter(a => a.employeeId === employee.id);
+        
+        const presentCount = employeeAttendances.filter(a => a.status === 'hadir').length;
+        const lateCount = employeeAttendances.filter(a => a.lateMinutes > 0).length;
+        const absentCount = employeeAttendances.filter(a => a.status === 'alfa').length;
+        
+        const row = `
+            <tr>
+                <td>${employee.id}</td>
+                <td>${employee.name}</td>
+                <td>${employee.username}</td>
+                <td>
+                    <span class="status-badge ${employee.role === 'admin' ? 'status-present' : 'status-permit'}">
+                        ${employee.role === 'admin' ? 'Admin' : 'Karyawan'}
+                    </span>
+                </td>
+                <td>${new Date().toLocaleDateString('id-ID')}</td>
+                <td>
+                    ${employee.role === 'employee' ? `
+                        <button onclick="resetPassword(${employee.id})" class="btn btn-warning btn-sm">
+                            <i class="fas fa-key"></i> Reset Password
+                        </button>
+                        <button onclick="deleteEmployee(${employee.id})" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : '-'}
+                </td>
+            </tr>
+        `;
+        
+        tbody.innerHTML += row;
+    });
 }
 
-// tiny helpers used also in admin: minutesLate
-function minutesLate(checkinDate) {
-  const d = new Date(checkinDate);
-  const limit = new Date(d);
-  limit.setHours(7,30,0,0);
-  if (d <= limit) return 0;
-  return Math.round((d - limit)/60000);
+function showAddEmployeeModal() {
+    document.getElementById('addEmployeeModal').classList.add('active');
 }
 
-function getRecords() { return JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]'); }
-function saveRecords(r){ localStorage.setItem(RECORDS_KEY, JSON.stringify(r)); }
-
-// Export Excel (xlsx) via SheetJS
-function exportExcel(){
-  const date = document.getElementById('filterDate').value;
-  const users = getUsers();
-  const records = getRecords();
-  const rows = [];
-  rows.push(["Nama","Username","Tanggal","Masuk","Keluar","Status","Terlambat (menit)","Catatan"]);
-  users.forEach(u => {
-    const rec = records.find(r=> r.username===u.username && r.date===date);
-    rows.push([u.name, u.username, date, rec?rec.checkinDisplay:'', rec?rec.checkoutDisplay:'', rec?rec.status:'', rec?rec.lateMinutes:'', rec?rec.note:'']);
-  });
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Rekap');
-  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-  const blob = new Blob([wbout], {type:'application/octet-stream'});
-  const filename = `rekap_${date}.xlsx`;
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  document.body.appendChild(link); link.click(); link.remove();
-  addLog({action:'exportExcel', by: getSession().username, date});
+function saveNewEmployee() {
+    const name = document.getElementById('newEmployeeName').value.trim();
+    const username = document.getElementById('newEmployeeUsername').value.trim();
+    
+    if (!name || !username) {
+        showToast('Harap isi semua field', 'error');
+        return;
+    }
+    
+    // Cek username unik
+    const employees = auth.getAllEmployees();
+    if (employees.some(e => e.username === username)) {
+        showToast('Username sudah digunakan', 'error');
+        return;
+    }
+    
+    const newEmployee = auth.addEmployee(name, username, 'password123');
+    
+    if (newEmployee) {
+        showToast('Karyawan baru berhasil ditambahkan', 'success');
+        closeAdminModal();
+        loadEmployeesTable();
+        populateEmployeeDropdowns();
+    }
 }
 
-// Export PDF via jsPDF
-async function exportPdf(){
-  const { jsPDF } = window.jspdf;
-  const date = document.getElementById('filterDate').value;
-  const users = getUsers();
-  const records = getRecords();
-  const doc = new jsPDF('p','pt','a4');
-  doc.setFontSize(14);
-  doc.text('Rekap Absensi - '+date, 40, 40);
-  doc.setFontSize(10);
-  let y = 60;
-  doc.text('Generated: '+new Date().toLocaleString(), 40, 54);
-  doc.setFontSize(9);
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const colWidths = [120,70,60,60,60,80,70];
-  // header
-  doc.text('Nama',40,y); doc.text('Username',160,y); doc.text('Masuk',240,y); doc.text('Keluar',300,y); doc.text('Status',360,y); doc.text('Terlambat',420,y); doc.text('Catatan',490,y);
-  y += 12;
-  users.forEach(u => {
-    const rec = records.find(r=> r.username===u.username && r.date===date);
-    const row = [u.name, u.username, rec?rec.checkinDisplay:'', rec?rec.checkoutDisplay:'', rec?rec.status:'', rec?String(rec.lateMinutes):'', rec?rec.note||'':''];
-    // wrap text if needed
-    if (y > 750) { doc.addPage(); y = 40; }
-    doc.text(row[0].slice(0,30),40,y); doc.text(row[1],160,y); doc.text(row[2],240,y); doc.text(row[3],300,y); doc.text(row[4],360,y); doc.text(row[5],420,y); doc.text(row[6].slice(0,30),490,y);
-    y += 12;
-  });
-  doc.save(`rekap_${date}.pdf`);
-  addLog({action:'exportPdf', by: getSession().username, date});
+function resetPassword(employeeId) {
+    if (confirm('Reset password karyawan ke default "password123"?')) {
+        const success = auth.resetPassword(employeeId);
+        
+        if (success) {
+            showToast('Password berhasil direset', 'success');
+        } else {
+            showToast('Gagal reset password', 'error');
+        }
+    }
 }
 
-function showAlert(msg, type='info') {
-  const p = `<div class="alert alert-${type}">${msg}</div>`;
-  document.getElementById('alert-placeholder').innerHTML = p;
-  setTimeout(()=> document.getElementById('alert-placeholder').innerHTML = '', 3000);
+function deleteEmployee(employeeId) {
+    if (confirm('Hapus karyawan ini? Data absensi akan tetap tersimpan.')) {
+        let employees = auth.getAllEmployees();
+        employees = employees.filter(e => e.id !== employeeId);
+        localStorage.setItem('employees', JSON.stringify(employees));
+        
+        showToast('Karyawan berhasil dihapus', 'success');
+        loadEmployeesTable();
+        populateEmployeeDropdowns();
+    }
 }
 
-// simple chart of counts for current month
-function renderChart(){
-  const ctx = document.getElementById('chartCanvas');
-  if(!ctx) return;
-  const date = document.getElementById('filterDate').value || new Date().toISOString().slice(0,10);
-  const month = new Date(date).getMonth();
-  const year = new Date(date).getFullYear();
-  const records = getRecords();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const labels = Array.from({length: daysInMonth}, (_,i)=> String(i+1));
-  const hadirArr = [];
-  const izinArr = [];
-  const sakitArr = [];
-  for (let d=1; d<=daysInMonth; d++){
-    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dayRecords = records.filter(r=> r.date === ds);
-    hadirArr.push(dayRecords.filter(x=> x.status==='Hadir').length);
-    izinArr.push(dayRecords.filter(x=> x.status==='Izin').length);
-    sakitArr.push(dayRecords.filter(x=> x.status==='Sakit' || x.status==='Cuti' ).length);
-  }
-  // destroy existing chart if exists
-  if (window._attChart) window._attChart.destroy();
-  window._attChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {label:'Hadir', data: hadirArr},
-        {label:'Izin', data: izinArr},
-        {label:'Sakit/Cuti', data: sakitArr}
-      ]
-    },
-    options: {responsive:true, plugins:{legend:{position:'top'}}}
-  });
+function loadHolidaysTable() {
+    const holidays = JSON.parse(localStorage.getItem('holidays')) || [];
+    const tbody = document.querySelector('#holidaysTable tbody');
+    
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    holidays.forEach(holiday => {
+        const row = `
+            <tr>
+                <td>${formatDate(new Date(holiday.date))}</td>
+                <td>${holiday.description}</td>
+                <td>
+                    <span class="status-badge ${holiday.type === 'nasional' ? 'status-present' : 'status-permit'}">
+                        ${holiday.type === 'nasional' ? 'Nasional' : 
+                          holiday.type === 'cuti' ? 'Cuti Bersama' : 'Lainnya'}
+                    </span>
+                </td>
+                <td>${new Date(holiday.date).toLocaleDateString('id-ID')}</td>
+                <td>
+                    <button onclick="deleteHoliday('${holiday.date}')" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </td>
+            </tr>
+        `;
+        
+        tbody.innerHTML += row;
+    });
+}
+
+function showAddHolidayModal() {
+    document.getElementById('addHolidayModal').classList.add('active');
+}
+
+function saveNewHoliday() {
+    const date = document.getElementById('newHolidayDate').value;
+    const description = document.getElementById('newHolidayDesc').value.trim();
+    const type = document.getElementById('newHolidayType').value;
+    
+    if (!date || !description) {
+        showToast('Harap isi semua field', 'error');
+        return;
+    }
+    
+    const holidays = JSON.parse(localStorage.getItem('holidays')) || [];
+    
+    // Cek duplikat
+    if (holidays.some(h => h.date === date)) {
+        showToast('Tanggal libur sudah ada', 'error');
+        return;
+    }
+    
+    const newHoliday = {
+        id: holidays.length + 1,
+        date,
+        description,
+        type,
+        createdAt: new Date().toISOString()
+    };
+    
+    holidays.push(newHoliday);
+    localStorage.setItem('holidays', JSON.stringify(holidays));
+    
+    showToast('Hari libur berhasil ditambahkan', 'success');
+    closeAdminModal();
+    loadHolidaysTable();
+}
+
+function deleteHoliday(date) {
+    if (confirm('Hapus hari libur ini?')) {
+        let holidays = JSON.parse(localStorage.getItem('holidays')) || [];
+        holidays = holidays.filter(h => h.date !== date);
+        localStorage.setItem('holidays', JSON.stringify(holidays));
+        
+        showToast('Hari libur berhasil dihapus', 'success');
+        loadHolidaysTable();
+    }
+}
+
+function populateEmployeeDropdowns() {
+    const employees = auth.getAllEmployees().filter(e => e.role === 'employee');
+    const dropdowns = [
+        document.getElementById('correctionEmployee'),
+        document.getElementById('reportEmployee'),
+        document.getElementById('correctionEmployee')
+    ];
+    
+    dropdowns.forEach(dropdown => {
+        if (dropdown) {
+            // Simpan selected value
+            const currentValue = dropdown.value;
+            dropdown.innerHTML = '<option value="">Pilih Karyawan</option>' +
+                employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+            
+            // Restore selected value jika ada
+            if (currentValue) {
+                dropdown.value = currentValue;
+            }
+        }
+    });
+    
+    // Populate report period options
+    const reportPeriod = document.getElementById('reportPeriod');
+    if (reportPeriod) {
+        reportPeriod.addEventListener('change', function() {
+            const customRange = document.getElementById('customDateRange');
+            customRange.style.display = this.value === 'custom' ? 'block' : 'none';
+        });
+    }
+}
+
+function setupAdminNavigation() {
+    const navLinks = document.querySelectorAll('.sidebar-menu a');
+    const contents = [
+        'overviewContent',
+        'monitoringContent', 
+        'correctionContent',
+        'employeesContent',
+        'reportsContent',
+        'holidaysContent',
+        'rankingContent'
+    ];
+    
+    navLinks.forEach((link, index) => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Update active class
+            navLinks.forEach(l => l.parentElement.classList.remove('active'));
+            link.parentElement.classList.add('active');
+            
+            // Show selected content
+            contents.forEach((contentId, i) => {
+                const element = document.getElementById(contentId);
+                if (element) {
+                    element.style.display = i === index ? 'block' : 'none';
+                }
+            });
+            
+            // Load data jika diperlukan
+            switch(index) {
+                case 1: // Monitoring
+                    loadMonitoringTable();
+                    break;
+                case 2: // Correction
+                    populateEmployeeDropdowns();
+                    break;
+                case 3: // Employees
+                    loadEmployeesTable();
+                    break;
+                case 4: // Reports
+                    populateEmployeeDropdowns();
+                    break;
+                case 5: // Holidays
+                    loadHolidaysTable();
+                    break;
+                case 6: // Ranking
+                    loadRanking();
+                    break;
+            }
+        });
+    });
+}
+
+function loadMonitoringTable() {
+    const employees = auth.getAllEmployees().filter(e => e.role === 'employee');
+    const todayAttendances = attendanceSystem.getTodayAllAttendances();
+    const tbody = document.querySelector('#monitoringTable tbody');
+    
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    employees.forEach(employee => {
+        const attendance = todayAttendances.find(a => a.employeeId === employee.id);
+        
+        const status = attendance ? 
+            (attendance.status === 'hadir' && attendance.lateMinutes > 0 ? 'terlambat' : attendance.status) :
+            'alfa';
+        
+        // Simulasi data lokasi dan IP
+        const locations = ['Kantor Utama', 'Kantor Cabang', 'WFH'];
+        const ips = ['192.168.1.' + Math.floor(Math.random() * 255)];
+        
+        const row = `
+            <tr>
+                <td>${employee.name}</td>
+                <td>${attendance?.checkIn || '-'}</td>
+                <td>${attendance?.checkOut || '-'}</td>
+                <td>
+                    <span class="status-badge ${status === 'hadir' ? 'status-present' :
+                                       status === 'terlambat' ? 'status-late' :
+                                       status === 'sakit' ? 'status-sick' :
+                                       status === 'izin' || status === 'cuti' ? 'status-permit' :
+                                       'status-alfa'}">
+                        ${status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>
+                </td>
+                <td>${attendance?.lateMinutes > 0 ? attendance.lateMinutes + ' menit' : 'Tepat waktu'}</td>
+                <td>${attendance ? locations[Math.floor(Math.random() * locations.length)] : '-'}</td>
+                <td>${attendance ? ips[0] : '-'}</td>
+            </tr>
+        `;
+        
+        tbody.innerHTML += row;
+    });
+}
+
+function generateExcelReport() {
+    const period = document.getElementById('reportPeriod').value;
+    const employeeId = document.getElementById('reportEmployee').value;
+    
+    // Filter data berdasarkan periode dan karyawan
+    let attendances = JSON.parse(localStorage.getItem('attendances'));
+    const employees = auth.getAllEmployees();
+    
+    // Filter by employee
+    if (employeeId && employeeId !== 'all') {
+        attendances = attendances.filter(a => a.employeeId === parseInt(employeeId));
+    }
+    
+    // Filter by period
+    const now = new Date();
+    let filteredAttendances = [];
+    
+    switch(period) {
+        case 'today':
+            const today = now.toISOString().split('T')[0];
+            filteredAttendances = attendances.filter(a => a.date === today);
+            break;
+        case 'week':
+            const oneWeekAgo = new Date(now.setDate(now.getDate() - 7));
+            const weekAgoStr = oneWeekAgo.toISOString().split('T')[0];
+            filteredAttendances = attendances.filter(a => a.date >= weekAgoStr);
+            break;
+        case 'month':
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const firstDayStr = firstDay.toISOString().split('T')[0];
+            filteredAttendances = attendances.filter(a => a.date >= firstDayStr);
+            break;
+        case 'custom':
+            const fromDate = document.getElementById('reportDateFrom').value;
+            const toDate = document.getElementById('reportDateTo').value;
+            if (fromDate && toDate) {
+                filteredAttendances = attendances.filter(a => a.date >= fromDate && a.date <= toDate);
+            }
+            break;
+        default:
+            filteredAttendances = attendances;
+    }
+    
+    // Add employee names
+    const reportData = filteredAttendances.map(a => {
+        const employee = employees.find(e => e.id === a.employeeId);
+        return {
+            ...a,
+            employeeName: employee?.name || 'Unknown'
+        };
+    });
+    
+    // Generate Excel
+    attendanceSystem.exportToExcel(reportData, `laporan-absensi-${period}.xlsx`);
+}
+
+function generatePDFReport() {
+    // Filter data sama seperti Excel
+    const period = document.getElementById('reportPeriod').value;
+    const employeeId = document.getElementById('reportEmployee').value;
+    
+    let attendances = JSON.parse(localStorage.getItem('attendances'));
+    const employees = auth.getAllEmployees();
+    
+    if (employeeId && employeeId !== 'all') {
+        attendances = attendances.filter(a => a.employeeId === parseInt(employeeId));
+    }
+    
+    const now = new Date();
+    let filteredAttendances = [];
+    
+    switch(period) {
+        case 'today':
+            const today = now.toISOString().split('T')[0];
+            filteredAttendances = attendances.filter(a => a.date === today);
+            break;
+        case 'week':
+            const oneWeekAgo = new Date(now.setDate(now.getDate() - 7));
+            const weekAgoStr = oneWeekAgo.toISOString().split('T')[0];
+            filteredAttendances = attendances.filter(a => a.date >= weekAgoStr);
+            break;
+        default:
+            filteredAttendances = attendances.slice(-50); // Batasi untuk PDF
+    }
+    
+    // Add employee names
+    const reportData = filteredAttendances.map(a => {
+        const employee = employees.find(e => e.id === a.employeeId);
+        return {
+            ...a,
+            employeeName: employee?.name || 'Unknown'
+        };
+    });
+    
+    // Generate PDF
+    attendanceSystem.exportToPDF(reportData, `laporan-absensi-${period}.pdf`);
+}
+
+function loadRanking() {
+    const period = document.getElementById('rankingPeriod')?.value || 'month';
+    const topPerformers = attendanceSystem.getTopPerformers(10);
+    
+    const rankingResults = document.getElementById('rankingResults');
+    if (!rankingResults) return;
+    
+    let html = `
+        <div class="ranking-list" style="display: grid; gap: 15px;">
+    `;
+    
+    topPerformers.forEach((performer, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        
+        html += `
+            <div class="ranking-item" style="display: flex; align-items: center; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <div style="font-size: 24px; margin-right: 15px; width: 50px; text-align: center;">
+                    ${medal}
+                </div>
+                <div style="flex: 1;">
+                    <h4 style="margin: 0 0 5px 0;">${performer.name}</h4>
+                    <div style="display: flex; gap: 15px; font-size: 14px;">
+                        <span><i class="fas fa-user-check"></i> Hadir: ${performer.present}</span>
+                        <span><i class="fas fa-clock"></i> Telat: ${performer.lateCount}</span>
+                        <span><i class="fas fa-file-medical"></i> Izin/Sakit: ${performer.sick + performer.permit}</span>
+                    </div>
+                </div>
+                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">
+                    ${performer.score}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `</div>`;
+    rankingResults.innerHTML = html;
+}
+
+function closeAdminModal() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.classList.remove('active');
+    });
+}
+
+function logout() {
+    auth.logout();
+}
+
+// Fungsi helper
+function formatDate(date) {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('id-ID', options);
+}
+
+function formatTime(date) {
+    return date.toTimeString().split(' ')[0].substring(0, 5);
 }
