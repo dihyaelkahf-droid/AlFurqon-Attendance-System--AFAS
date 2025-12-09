@@ -3,30 +3,992 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Admin - Sistem Absensi</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Admin Dashboard - Sistem Absensi</title>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ===== CSS RESET & VARIABLES ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        :root {
+            --primary: #2c3e50;
+            --primary-dark: #1a252f;
+            --secondary: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #17a2b8;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --gray: #7f8c8d;
+            --light-gray: #f8f9fa;
+            --border-radius: 10px;
+            --shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        /* ===== DASHBOARD LAYOUT ===== */
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 280px;
+            background: var(--primary);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: var(--transition);
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 0 25px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 13px;
+            opacity: 0.8;
+            padding-left: 32px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 5px;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 16px 25px;
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 4px solid transparent;
+            font-size: 15px;
+        }
+
+        .sidebar-menu a:hover,
+        .sidebar-menu li.active a {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-left-color: var(--secondary);
+        }
+
+        .sidebar-menu i {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .sidebar-footer {
+            padding: 25px;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 25px;
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 22px 28px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-info h1 {
+            color: var(--primary);
+            font-size: 26px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-info p {
+            color: var(--gray);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .time-display {
+            background: var(--light-gray);
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+        }
+
+        .btn-logout {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .btn-logout:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* ===== STATS CARDS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: var(--transition);
+            border-top: 4px solid var(--secondary);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 65px;
+            height: 65px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            color: white;
+        }
+
+        .icon-employee { background: var(--primary); }
+        .icon-present { background: var(--success); }
+        .icon-late { background: var(--warning); }
+        .icon-absent { background: var(--danger); }
+        .icon-leave { background: var(--info); }
+
+        .stat-content h3 {
+            font-size: 13px;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-number {
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .stat-subtext {
+            font-size: 13px;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+
+        /* ===== ALERTS SECTION ===== */
+        .alerts-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+        }
+
+        .alerts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .alerts-header h2 {
+            color: var(--primary);
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-count {
+            background: var(--danger);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-left: 10px;
+        }
+
+        .alert-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .alert-item {
+            padding: 18px;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            transition: var(--transition);
+        }
+
+        .alert-item:hover {
+            transform: translateX(5px);
+        }
+
+        .alert-warning {
+            background: #fff9e6;
+            border-left: 4px solid var(--warning);
+        }
+
+        .alert-danger {
+            background: #fdeded;
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-info {
+            background: #e8f4fc;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .alert-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .alert-warning .alert-icon { background: var(--warning); }
+        .alert-danger .alert-icon { background: var(--danger); }
+        .alert-info .alert-icon { background: var(--secondary); }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .alert-desc {
+            font-size: 14px;
+            color: var(--gray);
+            line-height: 1.5;
+        }
+
+        .alert-time {
+            font-size: 12px;
+            color: var(--gray);
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        /* ===== TABLES ===== */
+        .table-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 18px;
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .table-header h2 {
+            color: var(--primary);
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: var(--light-gray);
+        }
+
+        th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary);
+            border-bottom: 2px solid #ddd;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--light-gray);
+            vertical-align: middle;
+        }
+
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        tbody tr.selected {
+            background: #e3f2fd;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .btn-sm {
+            padding: 8px 15px;
+            font-size: 13px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219653;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-info {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #148fa0;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #2980b9;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ===== FORM CONTROLS ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: var(--transition);
+            background: white;
+        }
+
+        .form-control:focus {
+            border-color: var(--secondary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-control-sm {
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* ===== FILTER SECTION ===== */
+        .filter-section {
+            background: var(--light-gray);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* ===== STATUS BADGES ===== */
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .badge-present { background: #d4edda; color: #155724; }
+        .badge-late { background: #fff3cd; color: #856404; }
+        .badge-sick { background: #d1ecf1; color: #0c5460; }
+        .badge-permit { background: #e2e3e5; color: #383d41; }
+        .badge-absent { background: #f8d7da; color: #721c24; }
+        .badge-admin { background: #2c3e50; color: white; }
+        .badge-employee { background: #3498db; color: white; }
+
+        /* ===== EXPORT BUTTONS ===== */
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .export-buttons .btn {
+            min-width: 180px;
+            justify-content: center;
+        }
+
+        /* ===== RANKING SECTION ===== */
+        .ranking-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+
+        .ranking-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .ranking-card h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: var(--light-gray);
+            transition: var(--transition);
+        }
+
+        .ranking-item:hover {
+            background: #e3f2fd;
+        }
+
+        .rank-medal {
+            font-size: 28px;
+            margin-right: 20px;
+            width: 40px;
+            text-align: center;
+        }
+
+        .rank-1 .rank-medal { color: gold; }
+        .rank-2 .rank-medal { color: silver; }
+        .rank-3 .rank-medal { color: #cd7f32; }
+
+        .rank-details {
+            flex: 1;
+        }
+
+        .rank-name {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .rank-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: var(--gray);
+        }
+
+        .rank-score {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-left: 15px;
+        }
+
+        /* ===== MODALS ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlide 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-lg {
+            max-width: 800px;
+        }
+
+        @keyframes modalSlide {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .modal-header h3 {
+            color: var(--primary);
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--gray);
+            padding: 5px;
+            line-height: 1;
+        }
+
+        .btn-close:hover {
+            color: var(--danger);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid var(--light-gray);
+        }
+
+        /* ===== LOADING STATES ===== */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--border-radius);
+            z-index: 10;
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 250px;
+            }
+            
+            .main-content {
+                margin-left: 250px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 80px;
+                overflow: hidden;
+            }
+            
+            .sidebar-header h2 span,
+            .sidebar-header p,
+            .sidebar-menu a span {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 80px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .user-menu {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-section {
+                flex-direction: column;
+            }
+            
+            .filter-group {
+                min-width: 100%;
+            }
+            
+            .export-buttons .btn {
+                min-width: 100%;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .dashboard {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .table-container,
+            .alerts-container {
+                padding: 20px;
+            }
+            
+            .header-info h1 {
+                font-size: 22px;
+            }
+            
+            .table-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .table-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
+        }
+
+        /* ===== UTILITY CLASSES ===== */
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        .text-danger { color: var(--danger); }
+        .text-info { color: var(--info); }
+        .text-muted { color: var(--gray); }
+
+        .mb-0 { margin-bottom: 0 !important; }
+        .mb-20 { margin-bottom: 20px !important; }
+        .mt-20 { margin-top: 20px !important; }
+        .text-center { text-align: center; }
+        .w-100 { width: 100%; }
+
+        /* ===== EMPTY STATES ===== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 60px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h4 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+    </style>
 </head>
 <body>
+    <!-- Dashboard Container -->
     <div class="dashboard">
-        <!-- Sidebar -->
+        <!-- Sidebar Navigation -->
         <nav class="sidebar">
             <div class="sidebar-header">
-                <h3><i class="fas fa-fingerprint"></i> ADMIN PANEL</h3>
-                <p id="adminName"></p>
+                <h2>
+                    <i class="fas fa-user-shield"></i>
+                    <span>ADMIN PANEL</span>
+                </h2>
+                <p id="adminName">Administrator</p>
             </div>
+            
             <ul class="sidebar-menu">
-                <li class="active"><a href="#overview"><i class="fas fa-tachometer-alt"></i> Overview</a></li>
-                <li><a href="#monitoring"><i class="fas fa-eye"></i> Monitoring Harian</a></li>
-                <li><a href="#correction"><i class="fas fa-edit"></i> Koreksi Absensi</a></li>
-                <li><a href="#employees"><i class="fas fa-users"></i> Manajemen Karyawan</a></li>
-                <li><a href="#reports"><i class="fas fa-file-alt"></i> Laporan</a></li>
-                <li><a href="#holidays"><i class="fas fa-calendar-alt"></i> Hari Libur</a></li>
-                <li><a href="#ranking"><i class="fas fa-trophy"></i> Ranking Teladan</a></li>
+                <li class="active">
+                    <a href="#overview">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Overview</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#monitoring">
+                        <i class="fas fa-eye"></i>
+                        <span>Monitoring Harian</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#correction">
+                        <i class="fas fa-edit"></i>
+                        <span>Koreksi Absensi</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#employees">
+                        <i class="fas fa-users"></i>
+                        <span>Manajemen Karyawan</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#reports">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Laporan & Export</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#holidays">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Hari Libur</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#ranking">
+                        <i class="fas fa-trophy"></i>
+                        <span>Ranking Teladan</span>
+                    </a>
+                </li>
             </ul>
+            
             <div class="sidebar-footer">
-                <button onclick="logout()" class="btn-logout btn-block" style="margin: 20px;">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+                <button onclick="logout()" class="btn-logout w-100">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
                 </button>
             </div>
         </nav>
@@ -36,15 +998,26 @@
             <!-- Header -->
             <header class="header">
                 <div class="header-info">
-                    <h2>Dashboard Admin</h2>
-                    <p><i class="fas fa-calendar"></i> <span id="adminDate"></span></p>
+                    <h1>
+                        <i class="fas fa-user-shield"></i>
+                        Dashboard Administrator
+                    </h1>
+                    <p>
+                        <i class="fas fa-calendar"></i>
+                        <span id="currentDate">Loading...</span>
+                        <i class="fas fa-clock ml-20"></i>
+                        <span id="currentTime">00:00:00</span>
+                    </p>
                 </div>
+                
                 <div class="user-menu">
                     <div class="time-display">
-                        <i class="fas fa-clock"></i> <span id="adminTime"></span>
+                        <i class="fas fa-clock"></i>
+                        <span id="liveTime">00:00:00</span>
                     </div>
                     <button onclick="logout()" class="btn-logout">
-                        <i class="fas fa-sign-out-alt"></i> Logout
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
                     </button>
                 </div>
             </header>
@@ -54,381 +1027,226 @@
                 <!-- Stats Cards -->
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon present">
+                        <div class="stat-icon icon-employee">
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-content">
                             <h3>Total Karyawan</h3>
-                            <div class="number" id="totalEmployees">0</div>
-                            <p>18 karyawan aktif</p>
+                            <div class="stat-number" id="totalEmployees">0</div>
+                            <div class="stat-subtext">
+                                <span id="activeEmployees">0</span> aktif
+                            </div>
                         </div>
                     </div>
                     
                     <div class="stat-card">
-                        <div class="stat-icon late">
+                        <div class="stat-icon icon-present">
                             <i class="fas fa-user-check"></i>
                         </div>
                         <div class="stat-content">
                             <h3>Sudah Absen Hari Ini</h3>
-                            <div class="number" id="todayPresent">0</div>
-                            <p id="todayAbsent">0 belum absen</p>
+                            <div class="stat-number" id="presentToday">0</div>
+                            <div class="stat-subtext">
+                                <span id="presentPercent">0%</span> dari total
+                            </div>
                         </div>
                     </div>
                     
                     <div class="stat-card">
-                        <div class="stat-icon permit">
-                            <i class="fas fa-user-clock"></i>
+                        <div class="stat-icon icon-late">
+                            <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-content">
-                            <h3>Keterlambatan Hari Ini</h3>
-                            <div class="number" id="todayLate">0</div>
-                            <p id="latePercentage">0% dari yang hadir</p>
+                            <h3>Keterlambatan</h3>
+                            <div class="stat-number" id="lateToday">0</div>
+                            <div class="stat-subtext">
+                                <span id="latePercent">0%</span> dari yang hadir
+                            </div>
                         </div>
                     </div>
                     
                     <div class="stat-card">
-                        <div class="stat-icon absent">
-                            <i class="fas fa-user-slash"></i>
+                        <div class="stat-icon icon-leave">
+                            <i class="fas fa-file-medical"></i>
                         </div>
                         <div class="stat-content">
-                            <h3>Izin & Sakit Hari Ini</h3>
-                            <div class="number" id="todayLeave">0</div>
-                            <p>Dalam pengawasan</p>
+                            <h3>Izin & Sakit</h3>
+                            <div class="stat-number" id="leaveToday">0</div>
+                            <div class="stat-subtext">
+                                Izin: <span id="permitToday">0</span>, Sakit: <span id="sickToday">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Alerts Section -->
-                <div class="table-container" style="margin-top: 20px;">
-                    <h3><i class="fas fa-exclamation-triangle"></i> PERHATIAN</h3>
-                    <div id="alertsContainer">
-                        <!-- Alerts akan diisi oleh JavaScript -->
+                <div class="alerts-container">
+                    <div class="alerts-header">
+                        <h2>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Perhatian & Peringatan
+                            <span class="alert-count" id="alertCount">0</span>
+                        </h2>
+                        <button onclick="refreshAlerts()" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    
+                    <div class="alert-list" id="alertList">
+                        <!-- Alerts will be loaded here -->
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle"></i>
+                            <h4>Tidak Ada Peringatan</h4>
+                            <p>Semua sistem berjalan normal</p>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Today's Attendance Summary -->
-                <div class="table-container" style="margin-top: 20px;">
-                    <h3><i class="fas fa-clipboard-list"></i> REKAP HARIAN</h3>
+                <div class="table-container">
+                    <div class="table-header">
+                        <h2>
+                            <i class="fas fa-clipboard-list"></i>
+                            Rekap Absensi Hari Ini
+                        </h2>
+                        <div class="table-actions">
+                            <button onclick="exportTodayExcel()" class="btn btn-success btn-sm">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </button>
+                            <button onclick="refreshTodaySummary()" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
                     <table id="todaySummary">
                         <thead>
                             <tr>
-                                <th>Nama</th>
-                                <th>Masuk</th>
-                                <th>Keluar</th>
+                                <th>Nama Karyawan</th>
+                                <th>Waktu Masuk</th>
+                                <th>Waktu Keluar</th>
                                 <th>Status</th>
-                                <th>Telat</th>
+                                <th>Keterlambatan</th>
                                 <th>Catatan</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Data akan diisi oleh JavaScript -->
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="spinner" style="border-top-color: var(--primary); margin: 20px auto;"></div>
+                                    <p class="text-muted">Memuat data...</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Other Content Sections (hidden by default) -->
             <!-- Monitoring Content -->
             <div id="monitoringContent" style="display: none;">
                 <div class="table-container">
-                    <h3><i class="fas fa-eye"></i> MONITORING REAL-TIME</h3>
-                    <div class="filter-section" style="margin-bottom: 20px;">
-                        <select id="statusFilter" class="form-control" style="width: 200px; display: inline-block;">
-                            <option value="">Semua Status</option>
-                            <option value="hadir">Hadir</option>
-                            <option value="terlambat">Terlambat</option>
-                            <option value="izin">Izin</option>
-                            <option value="sakit">Sakit</option>
-                            <option value="alfa">Belum Absen</option>
-                        </select>
-                        <button onclick="filterMonitoring()" class="btn btn-primary">
-                            <i class="fas fa-filter"></i> Filter
-                        </button>
-                        <button onclick="refreshMonitoring()" class="btn btn-success" style="margin-left: 10px;">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
+                    <div class="table-header">
+                        <h2>
+                            <i class="fas fa-eye"></i>
+                            Monitoring Real-time
+                        </h2>
+                        <div class="table-actions">
+                            <button onclick="startLiveMonitoring()" class="btn btn-success btn-sm">
+                                <i class="fas fa-play"></i> Start Live
+                            </button>
+                            <button onclick="stopLiveMonitoring()" class="btn btn-danger btn-sm">
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                            <button onclick="exportMonitoring()" class="btn btn-info btn-sm">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
                     </div>
+                    
+                    <div class="filter-section">
+                        <div class="filter-group">
+                            <label><i class="fas fa-filter"></i> Filter Status</label>
+                            <select id="monitoringStatusFilter" class="form-control form-control-sm">
+                                <option value="">Semua Status</option>
+                                <option value="present">Sudah Hadir</option>
+                                <option value="late">Terlambat</option>
+                                <option value="absent">Belum Absen</option>
+                                <option value="leave">Izin/Sakit</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-building"></i> Departemen</label>
+                            <select id="monitoringDeptFilter" class="form-control form-control-sm">
+                                <option value="">Semua Departemen</option>
+                                <option value="hrd">HRD</option>
+                                <option value="academic">Academic</option>
+                                <option value="it">IT</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-search"></i> Cari Nama</label>
+                            <input type="text" id="monitoringSearch" class="form-control form-control-sm" placeholder="Cari karyawan...">
+                        </div>
+                        <div class="filter-group">
+                            <button onclick="filterMonitoring()" class="btn btn-primary w-100">
+                                <i class="fas fa-filter"></i> Terapkan Filter
+                            </button>
+                        </div>
+                    </div>
+                    
                     <table id="monitoringTable">
                         <thead>
                             <tr>
-                                <th>Nama</th>
+                                <th>#</th>
+                                <th>Nama Karyawan</th>
+                                <th>Departemen</th>
+                                <th>Status</th>
                                 <th>Waktu Masuk</th>
                                 <th>Waktu Keluar</th>
-                                <th>Status</th>
                                 <th>Keterlambatan</th>
+                                <th>Device</th>
                                 <th>Lokasi</th>
-                                <th>IP Address</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Data akan diisi oleh JavaScript -->
+                            <tr>
+                                <td colspan="9" class="empty-state">
+                                    <i class="fas fa-eye-slash"></i>
+                                    <h4>Monitoring Belum Dimulai</h4>
+                                    <p>Klik "Start Live" untuk memulai monitoring real-time</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
+                    
+                    <div class="text-center mt-20">
+                        <div class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Terakhir update: <span id="lastUpdate">-</span>
+                            <span id="liveIndicator" style="display: none; margin-left: 15px;">
+                                <span class="text-success"><i class="fas fa-circle"></i> LIVE</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Correction Content -->
             <div id="correctionContent" style="display: none;">
                 <div class="table-container">
-                    <h3><i class="fas fa-edit"></i> KOREKSI ABSENSI</h3>
-                    <div class="filter-section" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <select id="correctionEmployee" class="form-control" style="flex: 1;">
-                            <option value="">Pilih Karyawan</option>
-                        </select>
-                        <input type="date" id="correctionDateFrom" class="form-control" style="flex: 1;">
-                        <input type="date" id="correctionDateTo" class="form-control" style="flex: 1;">
-                        <button onclick="searchAttendance()" class="btn btn-primary">
-                            <i class="fas fa-search"></i> Cari
-                        </button>
-                    </div>
-                    <div id="correctionResults">
-                        <!-- Hasil pencarian akan ditampilkan di sini -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Employees Management Content -->
-            <div id="employeesContent" style="display: none;">
-                <div class="table-container">
-                    <h3><i class="fas fa-users"></i> MANAJEMEN KARYAWAN</h3>
-                    <div style="margin-bottom: 20px;">
-                        <button onclick="showAddEmployeeModal()" class="btn btn-success">
-                            <i class="fas fa-user-plus"></i> Tambah Karyawan Baru
-                        </button>
-                    </div>
-                    <table id="employeesTable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nama</th>
-                                <th>Username</th>
-                                <th>Role</th>
-                                <th>Tanggal Bergabung</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data akan diisi oleh JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Reports Content -->
-            <div id="reportsContent" style="display: none;">
-                <div class="table-container">
-                    <h3><i class="fas fa-file-alt"></i> LAPORAN & EKSPOR DATA</h3>
-                    <div class="filter-section" style="margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                            <div>
-                                <label>Periode</label>
-                                <select id="reportPeriod" class="form-control">
-                                    <option value="today">Hari Ini</option>
-                                    <option value="week">Minggu Ini</option>
-                                    <option value="month">Bulan Ini</option>
-                                    <option value="custom">Rentang Kustom</option>
-                                </select>
-                            </div>
-                            <div id="customDateRange" style="display: none;">
-                                <label>Dari Tanggal</label>
-                                <input type="date" id="reportDateFrom" class="form-control">
-                                <label>Sampai Tanggal</label>
-                                <input type="date" id="reportDateTo" class="form-control">
-                            </div>
-                            <div>
-                                <label>Karyawan</label>
-                                <select id="reportEmployee" class="form-control">
-                                    <option value="all">Semua Karyawan</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="export-buttons" style="margin-top: 20px;">
-                            <button onclick="generateExcelReport()" class="btn btn-success">
-                                <i class="fas fa-file-excel"></i> Ekspor ke Excel
-                            </button>
-                            <button onclick="generatePDFReport()" class="btn btn-danger">
-                                <i class="fas fa-file-pdf"></i> Ekspor ke PDF
-                            </button>
-                            <button onclick="generateSummaryReport()" class="btn btn-primary">
-                                <i class="fas fa-chart-bar"></i> Ringkasan Statistik
+                    <div class="table-header">
+                        <h2>
+                            <i class="fas fa-edit"></i>
+                            Koreksi Data Absensi
+                        </h2>
+                        <div class="table-actions">
+                            <button onclick="showManualEntry()" class="btn btn-success btn-sm">
+                                <i class="fas fa-plus"></i> Entri Manual
                             </button>
                         </div>
                     </div>
-                    <div id="reportPreview">
-                        <!-- Preview laporan akan ditampilkan di sini -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Holidays Content -->
-            <div id="holidaysContent" style="display: none;">
-                <div class="table-container">
-                    <h3><i class="fas fa-calendar-alt"></i> MANAJEMEN HARI LIBUR</h3>
-                    <div style="margin-bottom: 20px;">
-                        <button onclick="showAddHolidayModal()" class="btn btn-success">
-                            <i class="fas fa-plus"></i> Tambah Hari Libur
-                        </button>
-                    </div>
-                    <table id="holidaysTable">
-                        <thead>
-                            <tr>
-                                <th>Tanggal</th>
-                                <th>Deskripsi</th>
-                                <th>Jenis</th>
-                                <th>Ditambahkan</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data akan diisi oleh JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Ranking Content -->
-            <div id="rankingContent" style="display: none;">
-                <div class="table-container">
-                    <h3><i class="fas fa-trophy"></i> RANKING KARYAWAN TELADAN</h3>
-                    <div class="filter-section" style="margin-bottom: 20px;">
-                        <select id="rankingPeriod" class="form-control" style="width: 200px; display: inline-block;">
-                            <option value="month">Bulan Ini</option>
-                            <option value="lastmonth">Bulan Lalu</option>
-                            <option value="year">Tahun Ini</option>
-                        </select>
-                        <button onclick="loadRanking()" class="btn btn-primary">
-                            <i class="fas fa-filter"></i> Tampilkan
-                        </button>
-                    </div>
-                    <div id="rankingResults">
-                        <!-- Ranking akan ditampilkan di sini -->
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal untuk Koreksi Absensi -->
-    <div class="modal" id="correctionModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-edit"></i> KOREKSI ABSENSI</h3>
-                <button class="btn-close" onclick="closeAdminModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="correctionForm">
-                    <input type="hidden" id="correctionAttendanceId">
-                    <div class="form-group">
-                        <label>Nama Karyawan</label>
-                        <input type="text" id="correctionEmployeeName" class="form-control" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Tanggal</label>
-                        <input type="date" id="correctionDate" class="form-control" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Waktu Masuk</label>
-                        <input type="time" id="correctionCheckIn" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Waktu Keluar</label>
-                        <input type="time" id="correctionCheckOut" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select id="correctionStatus" class="form-control">
-                            <option value="hadir">Hadir</option>
-                            <option value="izin">Izin</option>
-                            <option value="sakit">Sakit</option>
-                            <option value="cuti">Cuti</option>
-                            <option value="alfa">Alfa</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Catatan</label>
-                        <textarea id="correctionNotes" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" onclick="saveCorrection()" class="btn btn-primary btn-block">
-                            <i class="fas fa-save"></i> SIMPAN PERUBAHAN
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal untuk Tambah Karyawan -->
-    <div class="modal" id="addEmployeeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-user-plus"></i> TAMBAH KARYAWAN BARU</h3>
-                <button class="btn-close" onclick="closeAdminModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="addEmployeeForm">
-                    <div class="form-group">
-                        <label>Nama Lengkap</label>
-                        <input type="text" id="newEmployeeName" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" id="newEmployeeUsername" class="form-control" required>
-                        <small style="color: #666;">Username harus unik</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Password Default</label>
-                        <input type="text" value="password123" class="form-control" readonly>
-                        <small style="color: #666;">Password default, bisa direset nanti</small>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" onclick="saveNewEmployee()" class="btn btn-success btn-block">
-                            <i class="fas fa-save"></i> SIMPAN KARYAWAN
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal untuk Tambah Hari Libur -->
-    <div class="modal" id="addHolidayModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-calendar-plus"></i> TAMBAH HARI LIBUR</h3>
-                <button class="btn-close" onclick="closeAdminModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="addHolidayForm">
-                    <div class="form-group">
-                        <label>Tanggal</label>
-                        <input type="date" id="newHolidayDate" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Deskripsi</label>
-                        <input type="text" id="newHolidayDesc" class="form-control" placeholder="Contoh: Libur Nasional, Cuti Bersama" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Jenis</label>
-                        <select id="newHolidayType" class="form-control">
-                            <option value="nasional">Libur Nasional</option>
-                            <option value="cuti">Cuti Bersama</option>
-                            <option value="lainnya">Lainnya</option>
-                        </select>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" onclick="saveNewHoliday()" class="btn btn-success btn-block">
-                            <i class="fas fa-save"></i> SIMPAN HARI LIBUR
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script src="auth.js"></script>
-    <script src="script.js"></script>
-    <script src="admin.js"></script>
-</body>
-</html>
+                    
+                    <div class="filter-section">
+                        <div class="filter-group">
+                            <label><i
