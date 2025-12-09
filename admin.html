@@ -1,132 +1,434 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin HRD - Absensi</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Sistem Absensi</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <nav class="navbar navbar-expand bg-white shadow-sm">
-    <div class="container">
-      <a class="navbar-brand" href="#">Admin Absensi</a>
-      <div>
-        <span id="adminGreeting" class="me-3"></span>
-        <button id="logoutAdmin" class="btn btn-outline-secondary btn-sm">Logout</button>
-      </div>
-    </div>
-  </nav>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-fingerprint"></i> ADMIN PANEL</h3>
+                <p id="adminName"></p>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="active"><a href="#overview"><i class="fas fa-tachometer-alt"></i> Overview</a></li>
+                <li><a href="#monitoring"><i class="fas fa-eye"></i> Monitoring Harian</a></li>
+                <li><a href="#correction"><i class="fas fa-edit"></i> Koreksi Absensi</a></li>
+                <li><a href="#employees"><i class="fas fa-users"></i> Manajemen Karyawan</a></li>
+                <li><a href="#reports"><i class="fas fa-file-alt"></i> Laporan</a></li>
+                <li><a href="#holidays"><i class="fas fa-calendar-alt"></i> Hari Libur</a></li>
+                <li><a href="#ranking"><i class="fas fa-trophy"></i> Ranking Teladan</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <button onclick="logout()" class="btn-logout btn-block" style="margin: 20px;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </nav>
 
-  <main class="container py-4">
-    <div id="alert-placeholder"></div>
-    <div class="row">
-      <div class="col-lg-3">
-        <div class="card mb-3 shadow-sm">
-          <div class="card-body">
-            <h6>Ringkasan Hari Ini</h6>
-            <div id="summaryArea"></div>
-          </div>
-        </div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-info">
+                    <h2>Dashboard Admin</h2>
+                    <p><i class="fas fa-calendar"></i> <span id="adminDate"></span></p>
+                </div>
+                <div class="user-menu">
+                    <div class="time-display">
+                        <i class="fas fa-clock"></i> <span id="adminTime"></span>
+                    </div>
+                    <button onclick="logout()" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </header>
 
-        <div class="card mb-3 shadow-sm">
-          <div class="card-body">
-            <h6>Manajemen Karyawan</h6>
-            <button class="btn btn-sm btn-primary mb-2" id="btnAddUser">Tambah Karyawan</button>
-            <div id="userList"></div>
-          </div>
-        </div>
+            <!-- Overview Content -->
+            <div id="overviewContent">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon present">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total Karyawan</h3>
+                            <div class="number" id="totalEmployees">0</div>
+                            <p>18 karyawan aktif</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon late">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Sudah Absen Hari Ini</h3>
+                            <div class="number" id="todayPresent">0</div>
+                            <p id="todayAbsent">0 belum absen</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon permit">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Keterlambatan Hari Ini</h3>
+                            <div class="number" id="todayLate">0</div>
+                            <p id="latePercentage">0% dari yang hadir</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon absent">
+                            <i class="fas fa-user-slash"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Izin & Sakit Hari Ini</h3>
+                            <div class="number" id="todayLeave">0</div>
+                            <p>Dalam pengawasan</p>
+                        </div>
+                    </div>
+                </div>
 
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h6>Libur/Tanggal Non-aktif</h6>
-            <input type="date" id="holidayDate" class="form-control mb-2">
-            <button id="addHoliday" class="btn btn-sm btn-success mb-2">Tambah Libur</button>
-            <ul id="holidayList" class="ps-3 small"></ul>
-          </div>
-        </div>
+                <!-- Alerts Section -->
+                <div class="table-container" style="margin-top: 20px;">
+                    <h3><i class="fas fa-exclamation-triangle"></i> PERHATIAN</h3>
+                    <div id="alertsContainer">
+                        <!-- Alerts akan diisi oleh JavaScript -->
+                    </div>
+                </div>
 
-      </div>
-
-      <div class="col-lg-9">
-        <div class="card mb-3 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex mb-2">
-              <div class="me-2">
-                <label class="small">Tanggal</label>
-                <input type="date" id="filterDate" class="form-control form-control-sm" value="">
-              </div>
-              <div class="me-2">
-                <label class="small">Cari Karyawan</label>
-                <input id="filterName" class="form-control form-control-sm" placeholder="Nama atau username">
-              </div>
-              <div class="align-self-end ms-auto">
-                <button id="btnExportExcel" class="btn btn-sm btn-outline-success">Export Excel</button>
-                <button id="btnExportPdf" class="btn btn-sm btn-outline-secondary">Export PDF</button>
-              </div>
+                <!-- Today's Attendance Summary -->
+                <div class="table-container" style="margin-top: 20px;">
+                    <h3><i class="fas fa-clipboard-list"></i> REKAP HARIAN</h3>
+                    <table id="todaySummary">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Masuk</th>
+                                <th>Keluar</th>
+                                <th>Status</th>
+                                <th>Telat</th>
+                                <th>Catatan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div id="attendanceTable" class="table-responsive"></div>
-          </div>
-        </div>
+            <!-- Other Content Sections (hidden by default) -->
+            <!-- Monitoring Content -->
+            <div id="monitoringContent" style="display: none;">
+                <div class="table-container">
+                    <h3><i class="fas fa-eye"></i> MONITORING REAL-TIME</h3>
+                    <div class="filter-section" style="margin-bottom: 20px;">
+                        <select id="statusFilter" class="form-control" style="width: 200px; display: inline-block;">
+                            <option value="">Semua Status</option>
+                            <option value="hadir">Hadir</option>
+                            <option value="terlambat">Terlambat</option>
+                            <option value="izin">Izin</option>
+                            <option value="sakit">Sakit</option>
+                            <option value="alfa">Belum Absen</option>
+                        </select>
+                        <button onclick="filterMonitoring()" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                        <button onclick="refreshMonitoring()" class="btn btn-success" style="margin-left: 10px;">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <table id="monitoringTable">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Waktu Masuk</th>
+                                <th>Waktu Keluar</th>
+                                <th>Status</th>
+                                <th>Keterlambatan</th>
+                                <th>Lokasi</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h6>Rekap Bulanan (Grafik sederhana)</h6>
-            <canvas id="chartCanvas" height="120"></canvas>
-            <div class="mt-3" id="alertsArea"></div>
-          </div>
-        </div>
+            <!-- Correction Content -->
+            <div id="correctionContent" style="display: none;">
+                <div class="table-container">
+                    <h3><i class="fas fa-edit"></i> KOREKSI ABSENSI</h3>
+                    <div class="filter-section" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <select id="correctionEmployee" class="form-control" style="flex: 1;">
+                            <option value="">Pilih Karyawan</option>
+                        </select>
+                        <input type="date" id="correctionDateFrom" class="form-control" style="flex: 1;">
+                        <input type="date" id="correctionDateTo" class="form-control" style="flex: 1;">
+                        <button onclick="searchAttendance()" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Cari
+                        </button>
+                    </div>
+                    <div id="correctionResults">
+                        <!-- Hasil pencarian akan ditampilkan di sini -->
+                    </div>
+                </div>
+            </div>
 
-      </div>
+            <!-- Employees Management Content -->
+            <div id="employeesContent" style="display: none;">
+                <div class="table-container">
+                    <h3><i class="fas fa-users"></i> MANAJEMEN KARYAWAN</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button onclick="showAddEmployeeModal()" class="btn btn-success">
+                            <i class="fas fa-user-plus"></i> Tambah Karyawan Baru
+                        </button>
+                    </div>
+                    <table id="employeesTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nama</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Tanggal Bergabung</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reports Content -->
+            <div id="reportsContent" style="display: none;">
+                <div class="table-container">
+                    <h3><i class="fas fa-file-alt"></i> LAPORAN & EKSPOR DATA</h3>
+                    <div class="filter-section" style="margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>Periode</label>
+                                <select id="reportPeriod" class="form-control">
+                                    <option value="today">Hari Ini</option>
+                                    <option value="week">Minggu Ini</option>
+                                    <option value="month">Bulan Ini</option>
+                                    <option value="custom">Rentang Kustom</option>
+                                </select>
+                            </div>
+                            <div id="customDateRange" style="display: none;">
+                                <label>Dari Tanggal</label>
+                                <input type="date" id="reportDateFrom" class="form-control">
+                                <label>Sampai Tanggal</label>
+                                <input type="date" id="reportDateTo" class="form-control">
+                            </div>
+                            <div>
+                                <label>Karyawan</label>
+                                <select id="reportEmployee" class="form-control">
+                                    <option value="all">Semua Karyawan</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="export-buttons" style="margin-top: 20px;">
+                            <button onclick="generateExcelReport()" class="btn btn-success">
+                                <i class="fas fa-file-excel"></i> Ekspor ke Excel
+                            </button>
+                            <button onclick="generatePDFReport()" class="btn btn-danger">
+                                <i class="fas fa-file-pdf"></i> Ekspor ke PDF
+                            </button>
+                            <button onclick="generateSummaryReport()" class="btn btn-primary">
+                                <i class="fas fa-chart-bar"></i> Ringkasan Statistik
+                            </button>
+                        </div>
+                    </div>
+                    <div id="reportPreview">
+                        <!-- Preview laporan akan ditampilkan di sini -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Holidays Content -->
+            <div id="holidaysContent" style="display: none;">
+                <div class="table-container">
+                    <h3><i class="fas fa-calendar-alt"></i> MANAJEMEN HARI LIBUR</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button onclick="showAddHolidayModal()" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Tambah Hari Libur
+                        </button>
+                    </div>
+                    <table id="holidaysTable">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Deskripsi</th>
+                                <th>Jenis</th>
+                                <th>Ditambahkan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Ranking Content -->
+            <div id="rankingContent" style="display: none;">
+                <div class="table-container">
+                    <h3><i class="fas fa-trophy"></i> RANKING KARYAWAN TELADAN</h3>
+                    <div class="filter-section" style="margin-bottom: 20px;">
+                        <select id="rankingPeriod" class="form-control" style="width: 200px; display: inline-block;">
+                            <option value="month">Bulan Ini</option>
+                            <option value="lastmonth">Bulan Lalu</option>
+                            <option value="year">Tahun Ini</option>
+                        </select>
+                        <button onclick="loadRanking()" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Tampilkan
+                        </button>
+                    </div>
+                    <div id="rankingResults">
+                        <!-- Ranking akan ditampilkan di sini -->
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-  </main>
 
-  <!-- Edit modal -->
-  <div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog">
-      <form id="editForm" class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Koreksi Absensi</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Modal untuk Koreksi Absensi -->
+    <div class="modal" id="correctionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> KOREKSI ABSENSI</h3>
+                <button class="btn-close" onclick="closeAdminModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="correctionForm">
+                    <input type="hidden" id="correctionAttendanceId">
+                    <div class="form-group">
+                        <label>Nama Karyawan</label>
+                        <input type="text" id="correctionEmployeeName" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal</label>
+                        <input type="date" id="correctionDate" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Waktu Masuk</label>
+                        <input type="time" id="correctionCheckIn" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Waktu Keluar</label>
+                        <input type="time" id="correctionCheckOut" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="correctionStatus" class="form-control">
+                            <option value="hadir">Hadir</option>
+                            <option value="izin">Izin</option>
+                            <option value="sakit">Sakit</option>
+                            <option value="cuti">Cuti</option>
+                            <option value="alfa">Alfa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Catatan</label>
+                        <textarea id="correctionNotes" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" onclick="saveCorrection()" class="btn btn-primary btn-block">
+                            <i class="fas fa-save"></i> SIMPAN PERUBAHAN
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div class="modal-body">
-          <input type="hidden" id="editUsername">
-          <div class="mb-2">
-            <label class="form-label">Tanggal</label>
-            <input id="editDate" type="date" class="form-control" required>
-          </div>
-          <div class="mb-2">
-            <label>Waktu Masuk</label>
-            <input id="editCheckin" type="time" class="form-control">
-          </div>
-          <div class="mb-2">
-            <label>Waktu Keluar</label>
-            <input id="editCheckout" type="time" class="form-control">
-          </div>
-          <div class="mb-2">
-            <label>Status</label>
-            <select id="editStatus" class="form-select">
-              <option>Hadir</option><option>Izin</option><option>Sakit</option><option>Cuti</option><option>Alfa</option>
-            </select>
-          </div>
-          <div class="mb-2">
-            <label>Catatan</label>
-            <input id="editNote" class="form-control">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Batal</button>
-          <button class="btn btn-primary" type="submit">Simpan Koreksi</button>
-        </div>
-      </form>
     </div>
-  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="admin.js"></script>
+    <!-- Modal untuk Tambah Karyawan -->
+    <div class="modal" id="addEmployeeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> TAMBAH KARYAWAN BARU</h3>
+                <button class="btn-close" onclick="closeAdminModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addEmployeeForm">
+                    <div class="form-group">
+                        <label>Nama Lengkap</label>
+                        <input type="text" id="newEmployeeName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="newEmployeeUsername" class="form-control" required>
+                        <small style="color: #666;">Username harus unik</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Password Default</label>
+                        <input type="text" value="password123" class="form-control" readonly>
+                        <small style="color: #666;">Password default, bisa direset nanti</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" onclick="saveNewEmployee()" class="btn btn-success btn-block">
+                            <i class="fas fa-save"></i> SIMPAN KARYAWAN
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal untuk Tambah Hari Libur -->
+    <div class="modal" id="addHolidayModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-plus"></i> TAMBAH HARI LIBUR</h3>
+                <button class="btn-close" onclick="closeAdminModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addHolidayForm">
+                    <div class="form-group">
+                        <label>Tanggal</label>
+                        <input type="date" id="newHolidayDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Deskripsi</label>
+                        <input type="text" id="newHolidayDesc" class="form-control" placeholder="Contoh: Libur Nasional, Cuti Bersama" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Jenis</label>
+                        <select id="newHolidayType" class="form-control">
+                            <option value="nasional">Libur Nasional</option>
+                            <option value="cuti">Cuti Bersama</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" onclick="saveNewHoliday()" class="btn btn-success btn-block">
+                            <i class="fas fa-save"></i> SIMPAN HARI LIBUR
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>
