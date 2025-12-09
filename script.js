@@ -292,4 +292,54 @@ class AttendanceSystem {
                         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
                         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
                         th { background-color: #2c3e50; color: white; }
-                        .header { text-align: center;
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .footer { margin-top: 30px; text-align: right; font-size: 12px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Laporan Absensi Karyawan</h1>
+                        <p>Tanggal: ${formatDate()}</p>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama</th>
+                                <th>Tanggal</th>
+                                <th>Masuk</th>
+                                <th>Keluar</th>
+                                <th>Status</th>
+                                <th>Telat</th>
+                                <th>Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map((item, index) => `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${item.employeeName}</td>
+                                    <td>${item.date}</td>
+                                    <td>${item.checkIn || '-'}</td>
+                                    <td>${item.checkOut || '-'}</td>
+                                    <td>${item.status}</td>
+                                    <td>${item.lateMinutes > 0 ? item.lateMinutes + ' menit' : '-'}</td>
+                                    <td>${item.notes || ''}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div class="footer">
+                        <p>Dicetak pada: ${new Date().toLocaleString('id-ID')}</p>
+                        <p>Sistem Absensi Digital © 2024</p>
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+}
+
+// Initialize attendance system
+const attendanceSystem = new AttendanceSystem();
