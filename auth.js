@@ -1,82 +1,84 @@
-// Authentication Class
-class Auth {
-    constructor() {
-        this.currentUser = null;
-        this.init();
-    }
+// absensi-karyawan/auth.js
 
-    init() {
-        // Check if user is already logged in
-        const user = localStorage.getItem('currentUser');
-        if (user) {
-            this.currentUser = JSON.parse(user);
-            this.redirectBasedOnRole();
-        }
-    }
+const CURRENT_USER_KEY = 'currentUser';
 
-    login(username, password) {
-        const user = db.login(username, password);
-        if (user) {
-            this.currentUser = user;
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            return { success: true, user };
-        }
-        return { 
-            success: false, 
-            message: 'Username atau password salah. Coba: sutris / sutris123 (admin) atau nita / nita123 (karyawan)' 
-        };
-    }
+/**
+ * Menangani proses login.
+ */
+function handleLogin(userId, pin) {
+    const users = getUsers(); 
+    // Dalam implementasi nyata, pin harus di-hash dan diverifikasi
+    const user = users.find(u => u.id === userId && u.pin === pin); 
 
-    logout() {
-        this.currentUser = null;
-        localStorage.removeItem('currentUser');
-        window.location.href = 'index.html';
-    }
-
-    getCurrentUser() {
-        return this.currentUser;
-    }
-
-    isAdmin() {
-        return this.currentUser && this.currentUser.role === 'admin';
-    }
-
-    isEmployee() {
-        return this.currentUser && this.currentUser.role === 'employee';
-    }
-
-    requireAuth() {
-        if (!this.currentUser) {
-            window.location.href = 'index.html';
-            return false;
-        }
-        return true;
-    }
-
-    requireAdmin() {
-        if (!this.requireAuth() || !this.isAdmin()) {
-            window.location.href = 'employee.html';
-            return false;
-        }
-        return true;
-    }
-
-    redirectBasedOnRole() {
-        const currentPage = window.location.pathname.split('/').pop();
-        
-        if (!this.currentUser) return;
-        
-        if (this.currentUser.role === 'admin') {
-            if (currentPage === 'index.html' || currentPage === 'employee.html') {
-                window.location.href = 'admin.html';
-            }
+    if (user) {
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+        if (user.role === 'admin') {
+            window.location.href = 'admin.html';
         } else {
-            if (currentPage === 'index.html' || currentPage === 'admin.html') {
-                window.location.href = 'employee.html';
-            }
+            window.location.href = 'employee.html';
         }
+        return true;
+    } else {
+        showAlert('Username atau Password salah!', 'danger');
+        return false;
     }
 }
 
-// Initialize global auth instance
-const auth = new Auth();
+/**
+ * Memeriksa status autentikasi dan otorisasi.
+ */
+function checkAuth(requiredRole) {
+    const currentUser = JSON.parse(localStorage.getItem(CURRENT_USER_KEY));
+
+    if (!currentUser) {
+        window.location.href = 'index.html';
+        return null;
+    }
+
+    if (requiredRole && currentUser.role !== requiredRole) {
+        // Redireksi ke dashboard sesuai peran jika tidak sesuai
+        window.location.href = currentUser.role === 'admin' ? 'admin.html' : 'employee.html';
+        return null;
+    }
+
+    return currentUser;
+}
+
+/**
+ * Logout pengguna.
+ */
+function logout() {
+    localStorage.removeItem(CURRENT_USER_KEY);
+    window.location.href = 'index.html';
+}
+
+/**
+ * Fungsi untuk menampilkan notifikasi menggunakan Bootstrap Alert.
+ */
+function showAlert(message, type = 'success') {
+    const alertContainer = document.getElementById('alertContainer');
+    if (!alertContainer) {
+        const body = document.querySelector('body');
+        const container = document.createElement('div');
+        container.id = 'alertContainer';
+        container.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
+        container.style.zIndex = 1050;
+        body.appendChild(container);
+    }
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow-lg`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    document.getElementById('alertContainer').appendChild(alertDiv);
+    
+    // Hilangkan otomatis setelah 4 detik
+    setTimeout(() => {
+        const bsAlert = bootstrap.Alert.getInstance(alertDiv) || new bootstrap.Alert(alertDiv);
+        bsAlert.close();
+    }, 4000);
+}
