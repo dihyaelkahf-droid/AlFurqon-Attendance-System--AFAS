@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Karyawan - Sistem Absensi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👨‍💼</text></svg>">
+</head>
+<body class="employee-page">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-employee">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-user-clock me-2"></i>
+                <span class="d-none d-md-inline">Dashboard Karyawan</span>
+            </a>
+            
+            <div class="d-flex align-items-center">
+                <div class="current-time-display me-3 d-none d-md-block">
+                    <i class="fas fa-clock me-1"></i>
+                    <span id="currentTime" class="current-time"></span>
+                </div>
+                
+                <div class="dropdown">
+                    <button class="btn btn-user dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-2"></i>
+                        <span id="userName"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" id="profileBtn"><i class="fas fa-user me-2"></i>Profil</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Attendance Card -->
+            <div class="col-lg-8 mb-4">
+                <div class="card attendance-main-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calendar-check me-2"></i>Absensi Hari Ini
+                        </h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="date-display mb-4">
+                            <h3 id="currentDate"></h3>
+                            <p class="text-muted" id="dayInfo"></p>
+                        </div>
+                        
+                        <div class="attendance-buttons mb-4">
+                            <div id="checkInSection">
+                                <button class="btn btn-success btn-lg btn-checkin" id="checkInBtn">
+                                    <i class="fas fa-sign-in-alt me-2"></i>ABSEN MASUK
+                                </button>
+                                <small class="text-muted d-block mt-2" id="checkinTime"></small>
+                            </div>
+                            
+                            <div id="checkOutSection" style="display: none;">
+                                <button class="btn btn-info btn-lg btn-checkout" id="checkOutBtn">
+                                    <i class="fas fa-sign-out-alt me-2"></i>ABSEN KELUAR
+                                </button>
+                                <small class="text-muted d-block mt-2" id="checkoutTime"></small>
+                            </div>
+                            
+                            <div id="alreadyAttended" style="display: none;">
+                                <div class="alert alert-success">
+                                    <h5><i class="fas fa-check-circle me-2"></i>Sudah Absen Hari Ini</h5>
+                                    <p id="attendanceInfo"></p>
+                                </div>
+                            </div>
+                            
+                            <div id="holidayInfo" style="display: none;">
+                                <div class="alert alert-warning">
+                                    <h5><i class="fas fa-umbrella-beach me-2"></i>Hari Libur</h5>
+                                    <p>Hari ini libur, tidak perlu absen.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="attendance-status">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="status-card">
+                                        <h6>Status Kehadiran</h6>
+                                        <h3 id="attendanceStatus" class="status-hadir">-</h3>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="status-card">
+                                        <h6>Status Keterlambatan</h6>
+                                        <h3 id="lateStatus">-</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Today's History -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history me-2"></i>Riwayat Hari Ini
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="todayHistoryTable">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Jam Masuk</th>
+                                        <th>Jam Keluar</th>
+                                        <th>Status</th>
+                                        <th>Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="todayHistoryBody">
+                                    <!-- Data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar Stats -->
+            <div class="col-lg-4 mb-4">
+                <!-- Personal Stats -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Statistik Bulan Ini
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="personal-stats">
+                            <div class="stat-item mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Kehadiran</span>
+                                    <strong id="attendanceRate">0%</strong>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" id="attendanceProgress" 
+                                         style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="stat-box">
+                                        <h2 id="presentCount">0</h2>
+                                        <small>Hadir</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-box">
+                                        <h2 id="lateCount">0</h2>
+                                        <small>Telat</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-box">
+                                        <h2 id="leaveCount">0</h2>
+                                        <small>Izin</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent History -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list me-2"></i>Riwayat Terakhir
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="history-list" id="recentHistory">
+                            <!-- Data will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Top Employees -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-trophy me-2"></i>Top 5 Karyawan Teladan
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="top-employees" id="topEmployees">
+                            <!-- Data will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check-in Modal -->
+    <div class="modal fade" id="checkInModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Absen Masuk</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Status Kehadiran</label>
+                        <select class="form-select" id="attendanceType">
+                            <option value="Hadir">Hadir</option>
+                            <option value="Izin">Izin</option>
+                            <option value="Sakit">Sakit</option>
+                            <option value="Cuti">Cuti</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Catatan (Wajib jika Izin/Sakit/Cuti)</label>
+                        <textarea class="form-control" id="attendanceNote" rows="3" 
+                                  placeholder="Masukkan alasan jika izin, sakit, atau cuti"></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Waktu saat ini: <span id="currentCheckinTime"></span>
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="confirmCheckin">Absen Masuk</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check-out Modal -->
+    <div class="modal fade" id="checkOutModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Absen Keluar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <h5>Konfirmasi Absen Keluar</h5>
+                        <p>Anda akan melakukan absen keluar pada:</p>
+                        <h4 id="currentCheckoutTime"></h4>
+                        <p class="text-muted">Pastikan pekerjaan hari ini telah selesai.</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Catatan (Opsional)</label>
+                        <textarea class="form-control" id="checkoutNote" rows="2" 
+                                  placeholder="Masukkan catatan jika diperlukan"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="confirmCheckout">Absen Keluar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Profil Karyawan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <div class="profile-avatar mb-3">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <h4 id="profileName"></h4>
+                        <p class="text-muted" id="profilePosition"></p>
+                    </div>
+                    <div class="profile-info">
+                        <div class="info-item mb-3">
+                            <label><i class="fas fa-id-card me-2"></i>Username</label>
+                            <p class="info-value" id="profileUsername"></p>
+                        </div>
+                        <div class="info-item mb-3">
+                            <label><i class="fas fa-calendar-alt me-2"></i>Bergabung</label>
+                            <p class="info-value" id="profileJoinDate"></p>
+                        </div>
+                        <div class="info-item">
+                            <label><i class="fas fa-chart-line me-2"></i>Statistik Bulan Ini</label>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <div class="small-stat">
+                                        <h6>Kehadiran</h6>
+                                        <h4 id="profileAttendance">0%</h4>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="small-stat">
+                                        <h6>Telat</h6>
+                                        <h4 id="profileLate">0x</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="database.js"></script>
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script src="employee.js"></script>
+</body>
+</html>

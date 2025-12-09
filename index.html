@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistem Absensi Karyawan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-wrapper">
+            <div class="login-card">
+                <div class="login-header text-center">
+                    <div class="login-logo mb-4">
+                        <i class="fas fa-fingerprint"></i>
+                    </div>
+                    <h1 class="login-title">Sistem Absensi Digital</h1>
+                    <p class="login-subtitle">Presensi Online Karyawan</p>
+                </div>
+                
+                <div class="login-body">
+                    <form id="loginForm">
+                        <div class="mb-4">
+                            <label class="form-label">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="username" 
+                                       placeholder="Masukkan username" required autofocus>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="password" 
+                                       placeholder="Masukkan password" required>
+                            </div>
+                            <div class="form-text mt-2">
+                                <small><i class="fas fa-info-circle me-1"></i>Default password: username123</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mb-4">
+                            <button type="submit" class="btn btn-login">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </button>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <small>
+                                <i class="fas fa-clock me-1"></i>
+                                <strong>Jam Kerja:</strong> 07:30 - 15:30
+                                <br>
+                                <i class="fas fa-calendar-times me-1"></i>
+                                <strong>Hari Libur:</strong> Minggu & Tanggal Merah
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="login-footer text-center mt-4">
+                <div class="row g-2">
+                    <div class="col-12">
+                        <h6 class="text-white mb-3">Akun Testing:</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="test-account admin">
+                            <h6><i class="fas fa-user-shield"></i> Admin</h6>
+                            <p><strong>sutris</strong> / sutris123</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="test-account employee">
+                            <h6><i class="fas fa-users"></i> Karyawan</h6>
+                            <p><strong>nita</strong> / nita123</p>
+                            <p><strong>heri</strong> / heri123</p>
+                            <p><strong>teguh</strong> / teguh123</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="copyright mt-4">
+                    Sistem Absensi v1.0 &copy; 2024
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="auth.js"></script>
+    <script src="database.js"></script>
+    <script>
+        // Initialize database
+        const db = new Database();
+        
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const result = auth.login(username, password);
+            
+            if (result.success) {
+                Utils.showToast('Login berhasil!', 'success');
+                
+                setTimeout(() => {
+                    if (result.user.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'employee.html';
+                    }
+                }, 1000);
+            } else {
+                Utils.showToast(result.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
