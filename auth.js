@@ -5,30 +5,38 @@ class Auth {
     }
 
     // Inisialisasi data default
-    initData() {
-        if (!localStorage.getItem('employees')) {
-            const defaultEmployees = [
-                { id: 1, name: 'Sutrisno', username: 'sutris', password: 'password123', role: 'admin' },
-                { id: 2, name: 'Nita Sri Wahyuningrum, S.Pd', username: 'nita', password: 'password123', role: 'employee' },
-                { id: 3, name: 'Heri Kurniawan', username: 'heri', password: 'password123', role: 'employee' },
-                { id: 4, name: 'Yian Hidayatul Ulfa, S. Pd.', username: 'yian', password: 'password123', role: 'employee' },
-                { id: 5, name: 'Diah Aprilia Devi, S.Pd', username: 'diah', password: 'password123', role: 'employee' },
-                { id: 6, name: 'Teguh Setia Isma Ramadan', username: 'teguh', password: 'password123', role: 'employee' },
-                { id: 7, name: 'Iskandar Kholif, S.Pd', username: 'iskandar', password: 'password123', role: 'employee' },
-                { id: 8, name: 'Dinul Qoyyimah, S. Pd', username: 'dinul', password: 'password123', role: 'employee' },
-                { id: 9, name: 'Endah Windarti, S.Pd', username: 'endah', password: 'password123', role: 'employee' },
-                { id: 10, name: 'Citra Wulan Sari, S. Pd', username: 'citra', password: 'password123', role: 'employee' },
-                { id: 11, name: 'Fajriansyah Abdillah', username: 'fajri', password: 'password123', role: 'employee' },
-                { id: 12, name: 'Muh. Abdul Hamid, S.H.I', username: 'hamid', password: 'password123', role: 'employee' },
-                { id: 13, name: 'Nurjayati, S.Pd', username: 'nurjayati', password: 'password123', role: 'employee' },
-                { id: 14, name: 'Riswan Siregar, M.Pd', username: 'riswan', password: 'password123', role: 'employee' },
-                { id: 15, name: 'Rizka Ulfiana, S. Tp', username: 'rizka', password: 'password123', role: 'employee' },
-                { id: 16, name: 'Susi Dwi Ratna Sari, S.Pd', username: 'susi', password: 'password123', role: 'employee' },
-                { id: 17, name: 'Usamah Hanif', username: 'usamah', password: 'password123', role: 'employee' },
-                { id: 18, name: 'Zainap Assaihatus Syahidah S. Si', username: 'zainap', password: 'password123', role: 'employee' }
-            ];
-            localStorage.setItem('employees', JSON.stringify(defaultEmployees));
-        }
+// auth.js - Ubah data default di fungsi initData():
+initData() {
+    if (!localStorage.getItem('employees')) {
+        const defaultEmployees = [
+            // AKUN ADMIN BARU
+            { id: 1, name: 'Administrator', username: 'admin', password: 'admin123', role: 'admin' },
+            
+            // Karyawan-karyawan (Sutrisno sekarang sebagai karyawan biasa)
+            { id: 2, name: 'Sutrisno', username: 'sutris', password: 'password123', role: 'employee' },
+            { id: 3, name: 'Nita Sri Wahyuningrum, S.Pd', username: 'nita', password: 'password123', role: 'employee' },
+            { id: 4, name: 'Heri Kurniawan', username: 'heri', password: 'password123', role: 'employee' },
+            { id: 5, name: 'Yian Hidayatul Ulfa, S. Pd.', username: 'yian', password: 'password123', role: 'employee' },
+            { id: 6, name: 'Diah Aprilia Devi, S.Pd', username: 'diah', password: 'password123', role: 'employee' },
+            { id: 7, name: 'Teguh Setia Isma Ramadan', username: 'teguh', password: 'password123', role: 'employee' },
+            { id: 8, name: 'Iskandar Kholif, S.Pd', username: 'iskandar', password: 'password123', role: 'employee' },
+            { id: 9, name: 'Dinul Qoyyimah, S. Pd', username: 'dinul', password: 'password123', role: 'employee' },
+            { id: 10, name: 'Endah Windarti, S.Pd', username: 'endah', password: 'password123', role: 'employee' },
+            { id: 11, name: 'Citra Wulan Sari, S. Pd', username: 'citra', password: 'password123', role: 'employee' },
+            { id: 12, name: 'Fajriansyah Abdillah', username: 'fajri', password: 'password123', role: 'employee' },
+            { id: 13, name: 'Muh. Abdul Hamid, S.H.I', username: 'hamid', password: 'password123', role: 'employee' },
+            { id: 14, name: 'Nurjayati, S.Pd', username: 'nurjayati', password: 'password123', role: 'employee' },
+            { id: 15, name: 'Riswan Siregar, M.Pd', username: 'riswan', password: 'password123', role: 'employee' },
+            { id: 16, name: 'Rizka Ulfiana, S. Tp', username: 'rizka', password: 'password123', role: 'employee' },
+            { id: 17, name: 'Susi Dwi Ratna Sari, S.Pd', username: 'susi', password: 'password123', role: 'employee' },
+            { id: 18, name: 'Usamah Hanif', username: 'usamah', password: 'password123', role: 'employee' },
+            { id: 19, name: 'Zainap Assaihatus Syahidah S. Si', username: 'zainap', password: 'password123', role: 'employee' }
+        ];
+        localStorage.setItem('employees', JSON.stringify(defaultEmployees));
+    }
+
+    // ... kode lainnya tetap
+}
 
         if (!localStorage.getItem('attendances')) {
             localStorage.setItem('attendances', JSON.stringify([]));
@@ -44,11 +52,13 @@ class Auth {
     }
 
     // Login function
-    login(username, password) {
-        const employees = JSON.parse(localStorage.getItem('employees'));
-        const user = employees.find(emp => emp.username === username && emp.password === password);
-        
-        if (user) {
+   login(username, password) {
+    const employees = JSON.parse(localStorage.getItem('employees'));
+    const user = employees.find(emp => emp.username === username);
+    
+    if (user) {
+        // Handle password khusus untuk admin
+        if (username === 'admin' && password === 'admin123') {
             // Simpan user yang login
             const userData = {
                 id: user.id,
@@ -60,8 +70,21 @@ class Auth {
             localStorage.setItem('currentUser', JSON.stringify(userData));
             return userData;
         }
-        return null;
+        // Handle password untuk karyawan (password123)
+        else if (password === 'password123') {
+            const userData = {
+                id: user.id,
+                name: user.name,
+                username: user.username,
+                role: user.role,
+                loginTime: new Date().toISOString()
+            };
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            return userData;
+        }
     }
+    return null;
+}
 
     // Logout function
     logout() {
@@ -188,3 +211,4 @@ function formatDate(date = new Date()) {
 function formatTime(date = new Date()) {
     return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
+
