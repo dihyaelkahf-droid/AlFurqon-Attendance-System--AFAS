@@ -1,43 +1,9 @@
-/* absensi-karyawan/style.css */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Dashboard Karyawan */
-.main-action-btn {
-    padding: 1rem;
-    font-size: 1.25rem;
-    font-weight: bold;
-    border-radius: 10px;
-}
-
-/* Dashboard Admin */
-.admin-sidebar {
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 250px;
-    padding-top: 56px; 
-    background-color: #ffffff;
-    border-right: 1px solid #dee2e6;
-}
-
-.admin-content {
-    margin-left: 250px;
-    padding: 20px;
-}
-
-/* Responsif untuk Admin */
-@media (max-width: 991.98px) {
-    .admin-sidebar {
-        display: none;
-    }
-    .admin-content {
-        margin-left: 0;
-    }
-    .main-sidebar-nav {
-        display: block !important;
-        width: 100%;
-    }
+/* style.css - minimal styling for mobile friendly UI */
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+.navbar .navbar-brand { font-weight:600; }
+.card { border-radius: 12px; }
+.btn-lg { padding: .75rem 1rem; font-size:1.05rem; border-radius: 10px; }
+@media (max-width:576px) {
+  .card-body h5 { font-size: 1rem; }
+  #mainCard button { font-size: 1.05rem; padding: .85rem; }
 }
