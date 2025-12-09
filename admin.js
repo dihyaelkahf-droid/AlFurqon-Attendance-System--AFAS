@@ -967,3 +967,45 @@ function checkAndSetAlfa() {
         showAlert('Semua karyawan sudah memiliki status absensi untuk hari kemarin.', 'info');
     }
 }
+
+// absensi-karyawan/admin.js (Hanya bagian fungsi exportReport)
+
+function exportReport(format) {
+    // Pastikan fungsi ini terpanggil dan memiliki akses ke XLSX
+    if (typeof XLSX === 'undefined') {
+        showAlert('Pustaka Excel (xlsx.full.min.js) gagal dimuat. Cek Console.', 'danger');
+        return;
+    }
+    
+    const table = document.getElementById('reportTable');
+    const tableData = [];
+    
+    // Ambil Header
+    const headers = Array.from(table.querySelector('thead tr').children).map(th => th.textContent);
+    tableData.push(headers);
+    
+    // Ambil Data Baris
+    table.querySelectorAll('tbody tr').forEach(row => {
+        const rowData = Array.from(row.children).map(td => td.textContent);
+        tableData.push(rowData);
+    });
+
+    if (format === 'xlsx') {
+        const ws = XLSX.utils.aoa_to_sheet(tableData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Absensi_Rekap");
+        
+        // Ambil rentang tanggal dari tampilan
+        const dateRangeText = document.getElementById('reportRangeText').textContent;
+        // Bersihkan teks untuk nama file
+        const safeFileName = dateRangeText.replace(/[^\w\s]/gi, '').replace('s.d', 'sd').replace('(', '').replace(')', '').trim();
+        
+        // Baris ini yang menjalankan proses download:
+        XLSX.writeFile(wb, `Rekap_Absensi_${safeFileName}.xlsx`);
+        
+        showAlert('Data berhasil di-export ke Excel!', 'success');
+    } else if (format === 'pdf') {
+        // ... (Mockup PDF) ...
+        showAlert('Export PDF (Mockup) berhasil! Gunakan Export Excel untuk hasil nyata.', 'info');
+    }
+}
